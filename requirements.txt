@@ -1,0 +1,16 @@
+# Core: code/qwen_img_edit.py, scripts/run_qwen_img_edit.py
+# For CUDA, prefer matching wheels from https://pytorch.org/get-started/locally/
+torch>=2.1.0
+# QwenImageEditPlusPipeline and related pipelines need a current diffusers; raise floor if ImportError
+diffusers>=0.31.0
+Pillow>=10.0.0
+requests>=2.28.0
+
+# Tests
+pytest>=8.0
+
+# Vendored models/qwen_image examples (demo.py, edit_demo.py, generate_w_prompt_enhance.py, prompt utils)
+gradio>=4.0.0
+numpy>=1.24.0
+spaces>=0.22.0
+dashscope>=1.14.0
