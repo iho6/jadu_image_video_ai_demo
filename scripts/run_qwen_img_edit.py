@@ -100,7 +100,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("qwen_edit_out"),
+        default=Path("output/qwen_edits"),
         help="Directory for PNG outputs.",
     )
     args = p.parse_args()
