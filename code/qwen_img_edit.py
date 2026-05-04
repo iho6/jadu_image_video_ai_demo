@@ -10,7 +10,10 @@ from PIL import Image
 
 
 class LoadModel:
-    """Loads a diffusers pipeline from a Hugging Face model id onto a device."""
+    """Loads a diffusers pipeline from a Hugging Face model id.
+
+    On CUDA, uses model CPU offload (no full `pipe.to(cuda)`) to reduce VRAM use.
+    """
 
     @staticmethod
     def load_model(
@@ -22,7 +25,10 @@ class LoadModel:
         pipe = QwenImageEditPlusPipeline.from_pretrained(
             model_id, torch_dtype=dtype
         )
-        pipe.to(device)
+        if device == "cuda" or device.startswith("cuda:"):
+            pipe.enable_model_cpu_offload()
+        else:
+            pipe.to(device)
         pipe.set_progress_bar_config(disable=None)
         return pipe
 
