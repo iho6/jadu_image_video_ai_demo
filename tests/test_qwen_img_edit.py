@@ -12,7 +12,7 @@ from qwen_img_edit import LoadModel, QwenImgEdit
 
 
 @patch("qwen_img_edit.QwenImageEditPlusPipeline")
-def test_load_model(mock_cls):
+def test_load_model_cpu_uses_to_not_offload(mock_cls):
     pipe_inst = MagicMock()
     mock_cls.from_pretrained.return_value = pipe_inst
     out = LoadModel.load_model("org/model", device="cpu", dtype=torch.float32)
@@ -20,6 +20,21 @@ def test_load_model(mock_cls):
         "org/model", torch_dtype=torch.float32
     )
     pipe_inst.to.assert_called_once_with("cpu")
+    pipe_inst.enable_model_cpu_offload.assert_not_called()
+    pipe_inst.set_progress_bar_config.assert_called_once_with(disable=None)
+    assert out is pipe_inst
+
+
+@patch("qwen_img_edit.QwenImageEditPlusPipeline")
+def test_load_model_cuda_uses_cpu_offload(mock_cls):
+    pipe_inst = MagicMock()
+    mock_cls.from_pretrained.return_value = pipe_inst
+    out = LoadModel.load_model("org/model", device="cuda", dtype=torch.bfloat16)
+    mock_cls.from_pretrained.assert_called_once_with(
+        "org/model", torch_dtype=torch.bfloat16
+    )
+    pipe_inst.enable_model_cpu_offload.assert_called_once_with()
+    pipe_inst.to.assert_not_called()
     pipe_inst.set_progress_bar_config.assert_called_once_with(disable=None)
     assert out is pipe_inst
 
@@ -36,7 +51,7 @@ def test_qwen_img_edit_init_sets_pipe(mock_lm):
 @patch("qwen_img_edit.LoadModel.load_model")
 def test_torch_generator_same_seed_produces_same_randn(mock_lm):
     mock_lm.return_value = MagicMock()
-    ed = QwenImgEdit()
+    ed = QwenImgEdit(device="cpu")
     g1 = ed.torch_generator(999)
     g2 = ed.torch_generator(999)
     assert torch.allclose(torch.randn(5, generator=g1), torch.randn(5, generator=g2))
