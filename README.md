@@ -6,6 +6,8 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+**ComfyUI** — A snapshot of [comfy-org/ComfyUI](https://github.com/comfy-org/ComfyUI) is vendored under [`comfyui/`](comfyui/) as plain files (not a git submodule; no nested `.git`).
+
 From the repo root, run the Qwen image edit CLI (all flags):
 
 ```bash

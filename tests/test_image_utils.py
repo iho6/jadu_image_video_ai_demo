@@ -7,7 +7,11 @@ from unittest.mock import MagicMock, patch
 
 from PIL import Image
 
-from utils.image_utils import load_image
+from utils.image_utils import (
+    expand_sources_to_three_rgb_images,
+    load_image,
+    pil_to_png_bytes,
+)
 
 
 def _fake_png_bytes() -> bytes:
@@ -32,3 +36,28 @@ def test_load_image_url(mock_get):
     assert img.mode == "RGB"
     assert img.size == (4, 4)
     mock_get.assert_called_once_with("https://example.com/a.png", timeout=120)
+
+
+def test_pil_to_png_bytes_roundtrip():
+    im = Image.new("RGB", (2, 3), color=(1, 2, 3))
+    b = pil_to_png_bytes(im)
+    out = Image.open(io.BytesIO(b))
+    assert out.size == (2, 3)
+
+
+def test_expand_sources_one_image(tmp_path):
+    p = tmp_path / "a.png"
+    Image.new("RGB", (4, 5)).save(p)
+    a, b, c = expand_sources_to_three_rgb_images([str(p)])
+    assert a is b is c
+    assert a.size == (4, 5)
+
+
+def test_expand_sources_three_distinct(tmp_path):
+    paths = []
+    for i, sz in enumerate([(2, 2), (3, 3), (4, 4)]):
+        p = tmp_path / f"{i}.png"
+        Image.new("RGB", sz).save(p)
+        paths.append(str(p))
+    a, b, c = expand_sources_to_three_rgb_images(paths)
+    assert a.size == (2, 2) and b.size == (3, 3) and c.size == (4, 4)

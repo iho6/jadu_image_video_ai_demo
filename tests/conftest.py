@@ -33,7 +33,13 @@ if "diffusers" not in sys.modules:
     sys.modules["diffusers"] = _mod
 
 _ROOT = Path(__file__).resolve().parents[1]
-for _d in (_ROOT, _ROOT / "code", _ROOT / "scripts"):
+for _d in (
+    _ROOT,
+    _ROOT / "code",
+    _ROOT / "scripts",
+    _ROOT / "services" / "img_edit_service",
+    _ROOT / "services" / "edit_angle_service",
+):
     _p = str(_d)
     if _p not in sys.path:
         sys.path.insert(0, _p)
