@@ -74,3 +74,5 @@ def test_run_edit_angle_writes_outputs(
     assert "ctx" in mock_upload.call_args.kwargs
     assert "logger" in mock_queue.call_args.kwargs
     assert "ctx" in mock_queue.call_args.kwargs
+    assert "phase_tracker" in mock_queue.call_args.kwargs
+    assert "phase_tracker" in mock_wait.call_args.kwargs

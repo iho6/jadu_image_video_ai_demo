@@ -1,4 +1,11 @@
-"""Reusable structured logging helpers for Comfy call-type jobs."""
+"""
+Reusable structured logging helpers for Comfy call-type jobs.
+
+Stable minimal phase events (info-level by default):
+- ``job.sent``: request accepted by Comfy queue (has ``prompt_id``).
+- ``job.running``: first runtime execution signal detected.
+- ``job.returned``: terminal state reached (``result`` in success/failed/cancelled).
+"""
 
 from __future__ import annotations
 
@@ -80,6 +87,9 @@ class StdoutComfyLogger(ComfyLogger):
         self.stream = stream or sys.stdout
 
     def emit(self, event: ComfyEvent) -> None:
+        detail = os.environ.get("COMFY_LOG_DETAIL", "").strip().lower()
+        if event.level == "debug" and detail not in {"1", "true", "yes", "debug"}:
+            return
         parts = [f"[comfy][{event.level}]", event.event]
         if event.job_id:
             parts.append(f"job={event.job_id}")
@@ -99,6 +109,9 @@ class JsonlComfyLogger(ComfyLogger):
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
     def emit(self, event: ComfyEvent) -> None:
+        detail = os.environ.get("COMFY_LOG_DETAIL", "").strip().lower()
+        if event.level == "debug" and detail not in {"1", "true", "yes", "debug"}:
+            return
         with self.path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(event.to_dict(), ensure_ascii=True) + "\n")
 

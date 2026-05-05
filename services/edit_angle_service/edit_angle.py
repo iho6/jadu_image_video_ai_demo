@@ -19,6 +19,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from utils.comfyui_utils import (
+    ComfyPhaseTracker,
     ComfyPromptError,
     queue_prompt,
     upload_image,
@@ -60,9 +61,10 @@ def run_edit_angle(
         workflow=str(workflow_path),
         comfy_url=base,
     )
-    logger.event(event="job.start", ctx=ctx, data={"output_dir": str(out)})
+    logger.event(event="job.start", level="debug", ctx=ctx, data={"output_dir": str(out)})
     png = pil_to_png_bytes(load_image(image))
-    logger.event(event="job.inputs.validated", ctx=ctx, data={"image_source": image})
+    logger.event(event="job.inputs.validated", level="debug", ctx=ctx, data={"image_source": image})
+    phase = ComfyPhaseTracker(logger=logger, ctx=ctx)
     name = upload_image(
         base,
         png,
@@ -77,9 +79,17 @@ def run_edit_angle(
     workflow[NODE_LOAD]["inputs"]["image"] = name
     workflow[NODE_PROMPT]["inputs"]["value"] = prompt
     workflow["65:33:21"]["inputs"]["seed"] = secrets.randbelow(2**31)
-    logger.event(event="workflow.prepared", ctx=ctx, data={"nodes": len(workflow)})
+    logger.event(event="workflow.prepared", level="debug", ctx=ctx, data={"nodes": len(workflow)})
     client_id = ctx.job_id
-    resp = queue_prompt(base, workflow, client_id, timeout=120, logger=logger, ctx=ctx)
+    resp = queue_prompt(
+        base,
+        workflow,
+        client_id,
+        timeout=120,
+        logger=logger,
+        ctx=ctx,
+        phase_tracker=phase,
+    )
     ctx.prompt_id = resp["prompt_id"]
     entry = wait_for_history_entry(
         base,
@@ -88,6 +98,7 @@ def run_edit_angle(
         poll_interval_sec=poll_interval_sec,
         logger=logger,
         ctx=ctx,
+        phase_tracker=phase,
     )
     images_meta = (
         (entry.get("outputs") or {}).get(NODE_SAVE, {}).get("images") or []
@@ -109,8 +120,8 @@ def run_edit_angle(
             dest = out / f"{dest.stem}_{uuid.uuid4().hex[:8]}{dest.suffix}"
         dest.write_bytes(data)
         written.append(dest)
-    logger.event(event="job.outputs.saved", ctx=ctx, data={"count": len(written)})
-    logger.event(event="job.done", ctx=ctx, data={"count": len(written)})
+    logger.event(event="job.outputs.saved", level="debug", ctx=ctx, data={"count": len(written)})
+    logger.event(event="job.done", level="debug", ctx=ctx, data={"count": len(written)})
     return written
 
 

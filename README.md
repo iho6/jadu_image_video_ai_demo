@@ -42,6 +42,20 @@ python services/edit_angle_service/edit_angle.py \
 
 ## Scripts
 
+From the repo root, run the Qwen VL CLI (all flags):
+
+```bash
+python scripts/run_qwen_vl.py \
+  --images <path-or-url> [<path-or-url> ...] \
+  --video <video-path-or-url> \
+  --prompt "<question or instruction>"
+```
+
+- `--images` — optional; one to three reference image file paths or `http://` / `https://` URLs when provided.
+- `--video` — optional; one video local path or `http://` / `https://` URL (must end with `.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`, or `.m4v`).
+- At least one of `--images` or `--video` must be provided.
+- `--prompt` — text prompt for evaluation (required, non-empty).
+
 From the repo root, run the Qwen image edit CLI (all flags):
 
 ```bash
