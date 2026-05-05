@@ -25,6 +25,7 @@ from utils.comfyui_utils import (
     view_image_bytes,
     wait_for_history_entry,
 )
+from utils.comfyui_logging import ComfyJobContext, build_comfy_logger
 from utils.image_utils import load_image, pil_to_png_bytes
 
 DEFAULT_COMFY_URL = "http://127.0.0.1:8188"
@@ -52,12 +53,23 @@ def run_edit_angle(
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     base = comfy_url.rstrip("/")
+    logger = build_comfy_logger()
+    ctx = ComfyJobContext(
+        job_id=uuid.uuid4().hex,
+        service="edit_angle",
+        workflow=str(workflow_path),
+        comfy_url=base,
+    )
+    logger.event(event="job.start", ctx=ctx, data={"output_dir": str(out)})
     png = pil_to_png_bytes(load_image(image))
+    logger.event(event="job.inputs.validated", ctx=ctx, data={"image_source": image})
     name = upload_image(
         base,
         png,
         f"angle_edit_{uuid.uuid4().hex}.png",
         timeout=120,
+        logger=logger,
+        ctx=ctx,
     )
     workflow: dict = copy.deepcopy(
         json.loads(workflow_path.read_text(encoding="utf-8"))
@@ -65,13 +77,17 @@ def run_edit_angle(
     workflow[NODE_LOAD]["inputs"]["image"] = name
     workflow[NODE_PROMPT]["inputs"]["value"] = prompt
     workflow["65:33:21"]["inputs"]["seed"] = secrets.randbelow(2**31)
-    client_id = uuid.uuid4().hex
-    resp = queue_prompt(base, workflow, client_id, timeout=120)
+    logger.event(event="workflow.prepared", ctx=ctx, data={"nodes": len(workflow)})
+    client_id = ctx.job_id
+    resp = queue_prompt(base, workflow, client_id, timeout=120, logger=logger, ctx=ctx)
+    ctx.prompt_id = resp["prompt_id"]
     entry = wait_for_history_entry(
         base,
         resp["prompt_id"],
         timeout_sec=timeout_sec,
         poll_interval_sec=poll_interval_sec,
+        logger=logger,
+        ctx=ctx,
     )
     images_meta = (
         (entry.get("outputs") or {}).get(NODE_SAVE, {}).get("images") or []
@@ -86,13 +102,15 @@ def run_edit_angle(
         subfolder = item.get("subfolder") or ""
         folder_type = item.get("type") or "output"
         data = view_image_bytes(
-            base, filename, subfolder, folder_type, timeout=120
+            base, filename, subfolder, folder_type, timeout=120, logger=logger, ctx=ctx
         )
         dest = out / filename
         if dest.exists():
             dest = out / f"{dest.stem}_{uuid.uuid4().hex[:8]}{dest.suffix}"
         dest.write_bytes(data)
         written.append(dest)
+    logger.event(event="job.outputs.saved", ctx=ctx, data={"count": len(written)})
+    logger.event(event="job.done", ctx=ctx, data={"count": len(written)})
     return written
 
 
@@ -136,6 +154,19 @@ def handler(args: argparse.Namespace) -> int:
             comfy_url=str(args.comfy_url),
         )
     except (ComfyPromptError, OSError, TimeoutError, ValueError, RuntimeError) as e:
+        logger = build_comfy_logger()
+        ctx = ComfyJobContext(
+            job_id=uuid.uuid4().hex,
+            service="edit_angle",
+            workflow=str(WORKFLOW_JSON),
+            comfy_url=str(args.comfy_url).rstrip("/"),
+        )
+        logger.event(
+            event="job.error",
+            level="error",
+            ctx=ctx,
+            data={"error": str(e), "error_type": type(e).__name__},
+        )
         print(f"error: {e}", file=sys.stderr)
         return 1
     for pth in paths:

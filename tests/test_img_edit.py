@@ -71,3 +71,7 @@ def test_run_img_edit_writes_outputs(
     mock_upload.assert_called()
     mock_queue.assert_called_once()
     mock_wait.assert_called_once()
+    assert "logger" in mock_upload.call_args.kwargs
+    assert "ctx" in mock_upload.call_args.kwargs
+    assert "logger" in mock_queue.call_args.kwargs
+    assert "ctx" in mock_queue.call_args.kwargs
