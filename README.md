@@ -6,9 +6,41 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-On CUDA with limited VRAM, inference uses **CPU offload** via `accelerate` (slower; needs enough **system RAM** for weights).
+## Service
 
-**ComfyUI** — A snapshot of [comfy-org/ComfyUI](https://github.com/comfy-org/ComfyUI) is vendored under [`comfyui/`](comfyui/) as plain files (not a git submodule; no nested `.git`).
+Server call to ComfyUI via JSON workflows.
+
+Requires a local ComfyUI server (default `http://127.0.0.1:8188`).
+
+**Img-edit** (1–3 reference images):
+
+```bash
+python services/img_edit_service/img_edit.py \
+  --images ./ref.png \
+  --prompt "Add soft rim lighting; keep identity." \
+  --output-dir output/img-edit
+```
+
+- `--images` — one to three reference image paths or `http://` / `https://` URLs (required).
+- `--prompt` — edit instruction (required, non-empty).
+- `--output-dir` — directory for PNG outputs (optional; default: `output/img-edit`).
+- `--comfy-url` — ComfyUI base URL (optional; default: `http://127.0.0.1:8188`).
+
+**Edit-angle** (single reference image):
+
+```bash
+python services/edit_angle_service/edit_angle.py \
+  --image ./ref.png \
+  --prompt "Low-angle wide shot, same subject and outfit." \
+  --output-dir output/edit-angle
+```
+
+- `--image` — reference image path or `http://` / `https://` URL (required).
+- `--prompt` — angle or framing instruction (required, non-empty).
+- `--output-dir` — directory for PNG outputs (optional; default: `output/edit-angle`).
+- `--comfy-url` — ComfyUI base URL (optional; default: `http://127.0.0.1:8188`).
+
+## Scripts
 
 From the repo root, run the Qwen image edit CLI (all flags):
 

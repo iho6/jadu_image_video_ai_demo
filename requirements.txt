@@ -4,7 +4,7 @@
 torch>=2.5.0
 # QwenImageEditPlusPipeline and related pipelines need a current diffusers; raise floor if ImportError
 diffusers>=0.31.0
-transformers>=4.41.0
+transformers>=4.50.3
 accelerate>=0.26.0
 Pillow>=10.0.0
 requests>=2.28.0
@@ -12,8 +12,9 @@ requests>=2.28.0
 # Tests
 pytest>=8.0
 
-# Vendored models/qwen_image examples (demo.py, edit_demo.py, generate_w_prompt_enhance.py, prompt utils)
-gradio>=4.0.0
-numpy>=1.24.0
-spaces>=0.22.0
-dashscope>=1.14.0
+# Optional: vendored models/qwen_image/src/examples (Gradio demos, DashScope prompt utils) —
+# pip install gradio spaces dashscope
+numpy>=1.25.0
+
+# Vendored ComfyUI server (comfyui/); run from that directory per upstream.
+-r comfyui/requirements.txt
