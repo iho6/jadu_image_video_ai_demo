@@ -6,6 +6,11 @@ duplicated here so runtime code does not import from ``models/``.
 
 from __future__ import annotations
 
+
+# =============================================================================
+# Enhance edit prompt (scripts/run_enhance_edit_prompt.py)
+# =============================================================================
+
 EDIT_SYSTEM_PROMPT = '''
 # Edit Prompt Enhancer
 You are a professional edit prompt enhancer. Your task is to generate a direct and specific edit prompt based on the user-provided instruction and the image input conditions.  
@@ -79,3 +84,36 @@ def build_polish_edit_prompt_text(user_prompt: str) -> str:
     if not stripped:
         raise ValueError("user_prompt must be non-empty after stripping whitespace.")
     return f"{EDIT_SYSTEM_PROMPT}\n\nUser Input: {stripped}\n\nRewritten Prompt:"
+
+
+# =============================================================================
+# Character sheet creation (scripts/run_character_sheet_creation.py)
+# =============================================================================
+#
+# These are kept as constants so pipelines can reference them without embedding
+# prompt literals inside business logic.
+ANGLE_PROMPT_RIGHT_90 = "Rotate the camera 90 degrees to the right."
+ANGLE_PROMPT_LEFT_90 = "Rotate the camera 90 degrees to the left."
+ANGLE_PROMPT_BACK_180 = "Rotate the camera 180 degrees to the back of the character."
+ANGLE_PROMPT_CLOSE_UP = "Turn the camera to a close-up."
+
+FULLBODY_CHECK_PROMPT = (
+    "You are strictly inspecting a character image on whether it shows the full body "
+    "of a character. If any part of the character image is cutoff at the edge, if part "
+    "of the body is not shown, responde 'No' for no full-body. If there is a full body "
+    "image, and the character inputted is visible from head to toe, responde 'Yes'. "
+    "Always responde with 'Yes' or 'No', a single word, nothing else."
+)
+
+MAKE_FULLBODY_PROMPT = (
+    "Give me a full-body image of the same character visible from head to toe with "
+    "absolutely nothing changed about the character. Do not change any details of the "
+    "character. Keep coloring, lighting, style, expression, clothing, all the same."
+)
+
+CHARACTER_DESCRIPTION_PROMPT = (
+    "You are creating a concise yet detailed description of the character as a prompt "
+    "for an image generation. Describe all the features from the head (hair, eye, face, "
+    "ear, mouth), body, arms, legs, feet (e.g. shoes) with concise detail. Output just "
+    "a few line of description of the character you see. Nothing else."
+)

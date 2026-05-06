@@ -72,6 +72,49 @@ python scripts/run_enhance_edit_prompt.py \
 - `--prompt` — required; raw edit instruction to enhance (non-empty).
 - Prints a single enhanced prompt to stdout. The underlying model is asked to respond with JSON containing a `Rewritten` field.
 
+### Character sheet creation CLI (`run_character_sheet_creation.py`)
+
+#### Example: create a character sheet
+
+```bash
+python scripts/run_character_sheet_creation.py \
+  --image ./ref.png \
+  --character-name "Aria"
+```
+
+#### Example: also write a character description JSON
+
+```bash
+python scripts/run_character_sheet_creation.py \
+  --image ./ref.png \
+  --character-name "Aria" \
+  --character-description
+```
+
+#### Optional: custom output directory and Comfy URL
+
+```bash
+python scripts/run_character_sheet_creation.py \
+  --image ./ref.png \
+  --character-name "Aria" \
+  --output-dir storage/Aria \
+  --comfy-url http://127.0.0.1:8188
+```
+
+- `--image` — required; single reference image path or `http://` / `https://` URL.
+- `--character-name` — required; used for default output dir and output filenames.
+- `--output-dir` — optional; default: `storage/<character-name>`.
+- `--comfy-url` — optional; default: `http://127.0.0.1:8188`.
+- `--character-description` — optional; when set, writes a JSON file with a VLM-generated description.
+
+Outputs:
+- Always prints a single path to stdout:
+  - Fullbody input → prints `<output_dir>/<character_name>_character_sheet.png` and exits 0.
+  - Non-fullbody input → generates a corrected fullbody PNG, prints its path, prints error message to stderr, exits 1.
+- When `--character-description` is provided, also writes:
+  - `<output_dir>/<character_name>_character_description.json`
+  - JSON includes: `character_name`, `image_described`, `description`, and `character_sheet_path` (when a sheet exists).
+
 ### Qwen image edit CLI (`run_qwen_img_edit.py`)
 
 From the repo root, run the Qwen image edit CLI (all flags):
