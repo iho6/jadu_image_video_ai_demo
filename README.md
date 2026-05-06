@@ -42,6 +42,8 @@ python services/edit_angle_service/edit_angle.py \
 
 ## Scripts
 
+### Qwen VL CLI (`run_qwen_vl.py`)
+
 From the repo root, run the Qwen VL CLI (all flags):
 
 ```bash
@@ -55,6 +57,22 @@ python scripts/run_qwen_vl.py \
 - `--video` — optional; one video local path or `http://` / `https://` URL (must end with `.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`, or `.m4v`).
 - At least one of `--images` or `--video` must be provided.
 - `--prompt` — text prompt for evaluation (required, non-empty).
+
+### Edit prompt enhancement CLI (`run_enhance_edit_prompt.py`)
+
+From the repo root, run the edit-prompt enhancement CLI (all flags):
+
+```bash
+python scripts/run_enhance_edit_prompt.py \
+  --images <path-or-url> [<path-or-url> ...] \
+  --prompt "<edit instruction>"
+```
+
+- `--images` — required; one to three reference image file paths or `http://` / `https://` URLs.
+- `--prompt` — required; raw edit instruction to enhance (non-empty).
+- Prints a single enhanced prompt to stdout. The underlying model is asked to respond with JSON containing a `Rewritten` field.
+
+### Qwen image edit CLI (`run_qwen_img_edit.py`)
 
 From the repo root, run the Qwen image edit CLI (all flags):
 
