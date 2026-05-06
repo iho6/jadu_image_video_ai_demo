@@ -16,6 +16,7 @@ from PIL import Image
 from qwen_vl import QwenVL
 from services.edit_angle_service.edit_angle import run_edit_angle
 from services.img_edit_service.img_edit import run_img_edit
+from utils.generic_utils import safe_filename_component
 from utils.image_utils import load_image
 from utils.vlm_utils import character_fullbody_check
 from utils.prompt_utils import (
@@ -77,7 +78,7 @@ class CharacterSheetCreation:
         ]
         stitched = self._stitch_3x2_with_blank(images)
 
-        safe_name = self._safe_filename_component(character_name)
+        safe_name = safe_filename_component(character_name)
         dest = out / f"{safe_name}_character_sheet.png"
         stitched.save(dest)
         return dest
@@ -148,13 +149,4 @@ class CharacterSheetCreation:
         canvas.paste(tiles[3], (0, tile_h))
         canvas.paste(tiles[4], (tile_w, tile_h))
         return canvas
-
-    def _safe_filename_component(self, value: str) -> str:
-        s = (value or "").strip()
-        if not s:
-            raise ValueError("character_name must be non-empty.")
-        s = s.replace("\\", "_").replace("/", "_")
-        s = re.sub(r"\\s+", "_", s)
-        s = re.sub(r"[^A-Za-z0-9._-]", "", s)
-        return s or "character"
 

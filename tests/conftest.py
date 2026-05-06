@@ -1,45 +1,24 @@
-"""Pytest: path setup; ensure QwenImageEditPlusPipeline exists for imports (stub if missing)."""
-
 from __future__ import annotations
 
 import sys
-import types
 from pathlib import Path
 
-try:
-    import diffusers as _diffusers
-except ImportError:
-    _diffusers = None
 
-if _diffusers is not None and not hasattr(_diffusers, "QwenImageEditPlusPipeline"):
-    class QwenImageEditPlusPipeline:  # noqa: N801
-        @classmethod
-        def from_pretrained(cls, *args, **kwargs):
-            raise RuntimeError(
-                "Stub: upgrade diffusers for real QwenImageEditPlusPipeline"
-            )
+def pytest_configure() -> None:
+    """
+    Ensure repo-root imports win over vendored ComfyUI modules.
 
-    _diffusers.QwenImageEditPlusPipeline = QwenImageEditPlusPipeline
-
-if "diffusers" not in sys.modules:
-    _mod = types.ModuleType("diffusers")
-
-    class QwenImageEditPlusPipeline:  # noqa: N801
-        @classmethod
-        def from_pretrained(cls, *args, **kwargs):
-            raise RuntimeError("Stub diffusers module")
-
-    _mod.QwenImageEditPlusPipeline = QwenImageEditPlusPipeline
-    sys.modules["diffusers"] = _mod
-
-_ROOT = Path(__file__).resolve().parents[1]
-for _d in (
-    _ROOT,
-    _ROOT / "code",
-    _ROOT / "scripts",
-    _ROOT / "services" / "img_edit_service",
-    _ROOT / "services" / "edit_angle_service",
-):
-    _p = str(_d)
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+    Several modules are intended to be imported as top-level namespace packages
+    (e.g. `utils.*`, `services.*`, and modules under `code/`).
+    """
+    root = Path(__file__).resolve().parents[1]
+    code_dir = root / "code"
+    scripts_dir = root / "scripts"
+    service_dirs = (
+        root / "services" / "img_edit_service",
+        root / "services" / "edit_angle_service",
+    )
+    for p in (str(root), str(code_dir), str(scripts_dir), *(str(d) for d in service_dirs)):
+        if p in sys.path:
+            sys.path.remove(p)
+        sys.path.insert(0, p)

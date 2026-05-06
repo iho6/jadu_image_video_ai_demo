@@ -115,6 +115,35 @@ Outputs:
   - `<output_dir>/<character_name>_character_description.json`
   - JSON includes: `character_name`, `image_described`, `description`, and `character_sheet_path` (when a sheet exists).
 
+### Ref guided generation CLI (`run_ref_guided_gen.py`)
+
+Reference-guided Qwen image edit using `@CharacterName` tokens in the prompt.
+
+How it works:
+- Parses unique `@CharacterName` references in `--prompt` (left-to-right).
+- Each `@CharacterName` maps to `storage/<CharacterName>/<safe(CharacterName)>_character_sheet.png`.
+- Image slot ordering is deterministic:
+  - Image 1..N: character sheets in parse order
+  - Image N+1: `--backdrop-img` (optional) as scene/backdrop reference
+
+Constraints:
+- Supports up to **2 unique** `@CharacterName` references plus an optional backdrop (max **3** images total, matching `img_edit`).
+
+Prerequisite:
+- Create each character sheet first via `scripts/run_character_sheet_creation.py`.
+
+Example:
+
+```bash
+python scripts/run_ref_guided_gen.py \
+  --prompt "@Eli sitting on the couch, staring at @Beth's phone" \
+  --backdrop-img <path-or-url> \
+  --output-dir output/ref-guided-gen
+```
+
+Outputs:
+- Prints one or more lines like `saved <path>` for generated PNGs.
+
 ### Qwen image edit CLI (`run_qwen_img_edit.py`)
 
 From the repo root, run the Qwen image edit CLI (all flags):

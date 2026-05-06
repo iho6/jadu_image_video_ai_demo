@@ -20,6 +20,7 @@ for _p in (str(_ROOT), str(_ROOT / "code")):
 
 from character_sheet_creation import CharacterSheetCreation  # type: ignore[import-not-found]  # noqa: E402
 from utils.comfyui_utils import ComfyPromptError  # noqa: E402
+from utils.generic_utils import safe_filename_component  # noqa: E402
 
 
 class RunCharacterSheetCreation:
@@ -64,17 +65,8 @@ class RunCharacterSheetCreation:
 
     def expected_sheet_path(self, *, output_dir: Path, character_name: str) -> Path:
         out = Path(output_dir)
-        safe = self._safe_filename_component(str(character_name))
+        safe = safe_filename_component(str(character_name))
         return out / f"{safe}_character_sheet.png"
-
-    def _safe_filename_component(self, value: str) -> str:
-        s = (value or "").strip()
-        if not s:
-            raise ValueError("character-name must be non-empty.")
-        s = s.replace("\\", "_").replace("/", "_")
-        s = re.sub(r"\s+", "_", s)
-        s = re.sub(r"[^A-Za-z0-9._-]", "", s)
-        return s or "character"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -123,7 +115,7 @@ def main() -> None:
     args = parse_args()
     try:
         runner = RunCharacterSheetCreation(comfy_url=args.comfy_url)
-        safe_name = runner._safe_filename_component(str(args.character_name))
+        safe_name = safe_filename_component(str(args.character_name))
         desc_json_path = Path(args.output_dir) / f"{safe_name}_character_description.json"
 
         path = runner.run_character_sheet_creation(
