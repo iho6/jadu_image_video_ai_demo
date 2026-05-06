@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 import types
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -16,8 +17,12 @@ _ROOT = Path(__file__).resolve().parents[1]
 
 def _load_runner_module(monkeypatch):
     fake_qwen_vl = types.ModuleType("qwen_vl")
+    fake_qwen_vl.last_qwen_vl_kwargs = None
 
     class _DummyQwenVL:
+        def __init__(self, *args, **kwargs):
+            fake_qwen_vl.last_qwen_vl_kwargs = dict(kwargs)
+
         def vl_eval(self, image_sources, prompt, video_source=None):
             assert isinstance(image_sources, list)
             assert isinstance(prompt, str)
@@ -41,6 +46,18 @@ def test_parse_args_accepts_images_only(monkeypatch):
     args = run_qwen_vl.parse_args()
     assert args.images == ["a.png"]
     assert args.video is None
+
+
+def test_run_vl_eval_uses_qwen_vl_without_kwargs(monkeypatch):
+    run_qwen_vl = _load_runner_module(monkeypatch)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["run_qwen_vl.py", "--images", "a.png", "--prompt", "describe"],
+    )
+    out = run_qwen_vl.run_vl_eval(run_qwen_vl.parse_args())
+    assert out == "ok"
+    assert sys.modules["qwen_vl"].last_qwen_vl_kwargs == {}
 
 
 def test_parse_args_accepts_video_only(monkeypatch):
@@ -118,15 +135,86 @@ def test_parse_args_rejects_empty_prompt(monkeypatch):
         run_qwen_vl.parse_args()
 
 
-def test_parse_args_rejects_invalid_video_extension(monkeypatch):
+def test_parse_args_accepts_extensionless_video_url(monkeypatch):
+    run_qwen_vl = _load_runner_module(monkeypatch)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_qwen_vl.py",
+            "--video",
+            "https://example.com/videos/asset-abc",
+            "--prompt",
+            "describe",
+        ],
+    )
+    args = run_qwen_vl.parse_args()
+    assert args.video == "https://example.com/videos/asset-abc"
+
+
+def test_parse_args_accepts_odd_local_video_extension(monkeypatch):
     run_qwen_vl = _load_runner_module(monkeypatch)
     monkeypatch.setattr(
         sys,
         "argv",
         ["run_qwen_vl.py", "--video", "clip.txt", "--prompt", "describe"],
     )
-    with pytest.raises(SystemExit):
-        run_qwen_vl.parse_args()
+    args = run_qwen_vl.parse_args()
+    assert args.video == "clip.txt"
+
+
+def test_main_normalizes_video_before_vl_eval(monkeypatch):
+    run_qwen_vl = _load_runner_module(monkeypatch)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_qwen_vl.py",
+            "--video",
+            "https://example.com/no-ext",
+            "--prompt",
+            "hi",
+        ],
+    )
+
+    def fake_prepare(ref, *, cache_dir):
+        assert ref == "https://example.com/no-ext"
+        return "/normalized/cache.mp4"
+
+    monkeypatch.setattr(run_qwen_vl, "prepare_video_for_vl", fake_prepare)
+
+    seen = {}
+
+    def fake_run_vl_eval(args):
+        seen["video"] = args.video
+        return "model-output"
+
+    monkeypatch.setattr(run_qwen_vl, "run_vl_eval", fake_run_vl_eval)
+    monkeypatch.setattr("builtins.print", lambda *_a, **_k: None)
+
+    run_qwen_vl.main()
+    assert seen["video"] == "/normalized/cache.mp4"
+
+
+def test_main_logs_traceback_on_failure(monkeypatch):
+    run_qwen_vl = _load_runner_module(monkeypatch)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["run_qwen_vl.py", "--images", "a.png", "--prompt", "describe"],
+    )
+
+    def boom(_args):
+        raise RuntimeError("boom")
+
+    fake_logger = MagicMock()
+    monkeypatch.setattr(run_qwen_vl, "LOGGER", fake_logger)
+    monkeypatch.setattr(run_qwen_vl, "run_vl_eval", boom)
+
+    with pytest.raises(SystemExit) as excinfo:
+        run_qwen_vl.main()
+    assert excinfo.value.code == 1
+    fake_logger.exception.assert_called_once_with("Qwen3-VL runner failed")
 
 
 @pytest.mark.skipif(

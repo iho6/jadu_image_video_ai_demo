@@ -19,9 +19,14 @@ class QwenVL:
 
     def __init__(
         self,
-        model_id: str = "Qwen/Qwen3-VL-8B-Thinking",
+        model_id: str = "Qwen/Qwen3-VL-8B-Thinking-FP8",
+        *,
+        max_model_len: int = 16384,
     ) -> None:
+        if max_model_len < 1:
+            raise ValueError("max_model_len must be >= 1")
         self.model_id = model_id
+        self.max_model_len = max_model_len
         LOGGER.info("Loading Qwen3-VL processor: %s", model_id)
         try:
             self.processor = AutoProcessor.from_pretrained(model_id)
@@ -37,6 +42,7 @@ class QwenVL:
                 trust_remote_code=True,
                 tensor_parallel_size=1,
                 gpu_memory_utilization=0.85,
+                max_model_len=max_model_len,
                 enforce_eager=False,
                 seed=0,
             )
@@ -51,12 +57,14 @@ class QwenVL:
         image_sources: Sequence[str],
         prompt: str,
         video_source: Optional[str] = None,
+        *,
+        max_pixels: int = 1280 * 28 * 28,
     ) -> list[dict[str, Any]]:
         """Build Qwen3 chat-format messages from image sources and prompt."""
         content: list[dict[str, str]] = []
         for source in image_sources:
             load_image(source)
-            content.append({"type": "image", "image": source})
+            content.append({"type": "image", "image": source, "max_pixels": max_pixels})
         if video_source is not None:
             content.append({"type": "video", "video": video_source})
         content.append({"type": "text", "text": prompt})
@@ -83,6 +91,7 @@ class QwenVL:
                 return_video_metadata=True,
             )
         except Exception as exc:
+            LOGGER.exception("Qwen3-vLLM input preparation failed")
             raise RuntimeError("Failed to prepare Qwen3-vLLM input payload.") from exc
 
         mm_data: dict[str, Any] = {}
@@ -117,6 +126,7 @@ class QwenVL:
                 ),
             )
         except Exception as exc:
+            LOGGER.exception("Qwen3-vLLM inference failed")
             raise RuntimeError("Qwen3-vLLM inference failed.") from exc
 
         if not outputs or not outputs[0].outputs:

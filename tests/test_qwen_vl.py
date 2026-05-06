@@ -89,11 +89,26 @@ def runner(qwen_vl_module):
     return qwen_vl_module.QwenVL()
 
 
+def test_llm_receives_default_max_model_len(qwen_vl_module):
+    runner = qwen_vl_module.QwenVL()
+    assert runner.llm.kwargs["max_model_len"] == 16384
+
+
+def test_llm_receives_custom_max_model_len(qwen_vl_module):
+    runner = qwen_vl_module.QwenVL(max_model_len=4096)
+    assert runner.llm.kwargs["max_model_len"] == 4096
+
+
+def test_qwen_vl_rejects_non_positive_max_model_len(qwen_vl_module):
+    with pytest.raises(ValueError, match="max_model_len"):
+        qwen_vl_module.QwenVL(max_model_len=0)
+
+
 def test_build_messages_images_only(runner):
     messages = runner.build_messages(["a.png", "b.png"], "describe")
     content = messages[0]["content"]
-    assert content[0] == {"type": "image", "image": "a.png"}
-    assert content[1] == {"type": "image", "image": "b.png"}
+    assert content[0] == {"type": "image", "image": "a.png", "max_pixels": 1280 * 28 * 28}
+    assert content[1] == {"type": "image", "image": "b.png", "max_pixels": 1280 * 28 * 28}
     assert content[-1] == {"type": "text", "text": "describe"}
 
 

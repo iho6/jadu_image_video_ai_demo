@@ -10,6 +10,9 @@ Pillow>=10.0.0
 requests>=2.28.0
 vllm
 qwen-vl-utils
+# Video for scripts/run_qwen_vl.py --video: qwen_vl_utils tries torchvision first; newer torchvision
+# removed read_video. Install decord (or PyAV: pip install av) so video decoding works.
+decord>=0.6.0
 
 # Tests
 pytest>=8.0

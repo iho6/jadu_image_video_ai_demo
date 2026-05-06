@@ -2,14 +2,16 @@
 
 Run all commands from repo root: `d:\Work\Jadu Interview\jadu_image_video_ai_demo`
 
+For **`run_qwen_vl` with `--video`**: extensionless or odd-container inputs are downloaded/transcoded to MP4 via **ffmpeg** (install e.g. `apt install ffmpeg`; cache: `output/.qwen-vl-video-cache/`).
+
 ## 1) Reusable variables
 
 ```powershell
-$CAT_IMG = "https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-ea3a392a-23de-43c4-a915-83ebcc2a2725"
-$VET_IMG = "https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a"
-$GIRL_IMG = "https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-f38842e4-a365-479d-aa6c-c67e76ccc234"
-$ROOM_IMG = "https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-6f9167f5-0d6e-4b2a-b02f-cebb165435a2"
-$SCENE_VIDEO = "https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-ee0e77cc-d735-4d35-bcbe-ef89eaa23789"
+$CAT_IMG="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-ea3a392a-23de-43c4-a915-83ebcc2a2725"
+$VET_IMG="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a"
+$GIRL_IMG="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-f38842e4-a365-479d-aa6c-c67e76ccc234"
+$ROOM_IMG="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-6f9167f5-0d6e-4b2a-b02f-cebb165435a2"
+$SCENE_VIDEO="https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-ee0e77cc-d735-4d35-bcbe-ef89eaa23789"
 ```
 
 ## 2) img_edit (1, 2, 3 image inputs)
@@ -42,6 +44,10 @@ python services/edit_angle_service/edit_angle.py --image $ROOM_IMG --prompt "Rot
 ```
 
 ## 4) run_qwen_vl (image-only, video-only, mixed)
+
+vLLM context length is set by **`MAX_MODEL_LEN` in** [`code/qwen_vl.py`](../code/qwen_vl.py) (not a CLI flag). For a one-off override, construct `QwenVL(max_model_len=...)` in Python.
+
+For **`--video`**, `qwen_vl_utils` needs **`decord`** (in `requirements.txt`) or **`av`** (PyAV) when `torchvision.io.read_video` is unavailable; **`ffmpeg`** is still required on `PATH` for extensionless-URL normalization (see top of this file).
 
 ```powershell
 # image-only (1 image)
