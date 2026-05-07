@@ -304,10 +304,17 @@ The following generation flags are not valid and may be ignored: ['temperature',
 
 ### VLM analysis (video + image)
 
+**Inputs**
+
+- Video: `input/scene_video.mp4`
+- Image:
+
+<img src="input/room.png" width="220" />
+
 **Command**
 
 ```bash
-python scripts/run_qwen_vl.py --images $ROOM_IMG --video $SCENE_VIDEO --prompt "Describe both the image and the video with as much detail as possible, then explain what visual details are consistent or different between them."
+python scripts/run_qwen_vl.py --images input/room.png --video input/scene_video.mp4 --prompt "Describe both the image and the video with as much detail as possible, then explain what visual details are consistent or different between them."
 ```
 
 **Output**
@@ -322,7 +329,7 @@ The two images are visually distinct in several ways. The first is a static, war
 <summary>Generation log (click to expand)</summary>
 
 ```text
-.venv) root@5255d91fbdee:~/jadu_image_video_ai_demo# python scripts/run_qwen_vl.py --images $ROOM_IMG --video $SCENE_VIDEO --prompt "Describe both the image and the video with as much detail as possible, then explain what visual details are consistent or different between them."
+.venv) root@5255d91fbdee:~/jadu_image_video_ai_demo# python scripts/run_qwen_vl.py --images input/room.png --video input/scene_video.mp4 --prompt "Describe both the image and the video with as much detail as possible, then explain what visual details are consistent or different between them."
 2026-05-07 11:36:04,839 INFO qwen_vl - Loading Qwen3-VL processor: models/hf/Qwen__Qwen3-VL-4B-Instruct
 2026-05-07 11:36:05,486 INFO qwen_vl - Loading Qwen3-VL model: models/hf/Qwen__Qwen3-VL-4B-Instruct (device=cuda:0, dtype=torch.bfloat16)
 Loading checkpoint shards: 100%|████████████████| 2/2 [00:00<00:00, 25.00it/s]

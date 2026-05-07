@@ -66,6 +66,10 @@ python scripts/run_qwen_vl.py --video $SCENE_VIDEO --prompt "Describe this video
 
 # image + video combined attempt
 python scripts/run_qwen_vl.py --images $ROOM_IMG --video $SCENE_VIDEO --prompt "Describe both the image and the video with as much detail as possible, then explain what visual details are consistent or different between them."
+
+# image + video combined attempt (local files)
+# NOTE: Requires `input/scene_video.mp4` to exist (downloaded separately) and `input/room.png` to exist.
+python scripts/run_qwen_vl.py --images input/room.png --video input/scene_video.mp4 --prompt "Describe both the image and the video with as much detail as possible, then explain what visual details are consistent or different between them."
 ```
 
 ## 4) img_edit (1, 2, 3 image inputs)
