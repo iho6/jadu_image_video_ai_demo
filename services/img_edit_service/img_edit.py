@@ -12,7 +12,7 @@ import json
 import sys
 import uuid
 from pathlib import Path
-from typing import Sequence
+from typing import Literal, Sequence
 
 # Repo root must precede utils imports when running as a script.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +37,11 @@ WORKFLOW_JSON = Path(__file__).parent / "image_qwen_image_edit_2509.json"
 NODE_PROMPT = "435"
 NODE_LOAD = ("78", "79", "80")
 NODE_SAVE = "60"
+NODE_SCALE = {"image1": "433:117", "image2": "433:118", "image3": "433:119"}
+NODE_VAE_ENCODE = "433:88"
+NODE_KSAMPLER = "433:3"
+NODE_EMPTY_16_9_LATENT = "433:200"
+LatentSource = Literal["image1", "image2", "image3", "empty_16_9"]
 
 
 def run_img_edit(
@@ -48,6 +53,7 @@ def run_img_edit(
     workflow_path: Path = WORKFLOW_JSON,
     poll_interval_sec: float = 0.5,
     timeout_sec: float = 600.0,
+    latent_source: LatentSource = "image1",
 ) -> list[Path]:
     """
     Load images, upload to Comfy, run the workflow, download SaveImage outputs to ``output_dir``.
@@ -85,6 +91,16 @@ def run_img_edit(
     workflow[NODE_PROMPT]["inputs"]["value"] = prompt
     for node_id, name in zip(NODE_LOAD, names, strict=True):
         workflow[node_id]["inputs"]["image"] = name
+
+    # Select which input determines the latent canvas aspect/size.
+    if latent_source == "empty_16_9":
+        workflow[NODE_KSAMPLER]["inputs"]["latent_image"] = [NODE_EMPTY_16_9_LATENT, 0]
+    else:
+        scale_node = NODE_SCALE.get(latent_source)
+        if scale_node is None:
+            raise ValueError(f"Unsupported latent_source: {latent_source!r}")
+        workflow[NODE_VAE_ENCODE]["inputs"]["pixels"] = [scale_node, 0]
+        workflow[NODE_KSAMPLER]["inputs"]["latent_image"] = [NODE_VAE_ENCODE, 0]
 
     logger.event(event="workflow.prepared", level="debug", ctx=ctx, data={"nodes": len(workflow)})
     client_id = ctx.job_id

@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from utils.generic_utils import safe_filename_component
+from utils.prompt_utils import append_reference_constraints
 
 # Allow segment-delimited dots (e.g. @team.alice) but never capture trailing punctuation.
 _CHAR_REF_RE = re.compile(r"@([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)")
@@ -57,6 +58,7 @@ class RefGuidedGen:
             paths.append(p)
         return paths
 
+    #refactor at later time to prompt utils
     def rewrite_prompt_with_indices(self, prompt: str, names_in_order: list[str]) -> str:
         """Replace @Name tokens with 'Character in image <idx>' based on parse order."""
         if not names_in_order:
@@ -71,28 +73,6 @@ class RefGuidedGen:
             return f"Character in image {idx}"
 
         return _CHAR_REF_RE.sub(repl, str(prompt))
-
-    def append_reference_constraints(
-        self,
-        prompt: str,
-        *,
-        character_ref_count: int,
-        backdrop_idx: int | None,
-    ) -> str:
-        suffix: list[str] = []
-        if backdrop_idx is not None:
-            suffix.append(f"Use image {backdrop_idx} as the scene/backdrop reference.")
-        suffix.append(
-            "Keep the appearance, clothing, and all details of each character "
-            f"the same as in the {character_ref_count} image reference(s)."
-        )
-        out = str(prompt).strip()
-        extra = " ".join(suffix).strip()
-        if not out:
-            raise ValueError("prompt must be non-empty.")
-        if extra:
-            return f"{out}\n\n{extra}"
-        return out
 
     def build_images_and_prompt(
         self,
@@ -128,7 +108,7 @@ class RefGuidedGen:
             )
 
         rewritten = self.rewrite_prompt_with_indices(raw_prompt, names)
-        rewritten = self.append_reference_constraints(
+        rewritten = append_reference_constraints(
             rewritten,
             character_ref_count=len(names),
             backdrop_idx=backdrop_idx,

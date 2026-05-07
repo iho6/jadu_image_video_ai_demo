@@ -43,15 +43,26 @@ class RunRefGuidedGen:
     ) -> list[Path]:
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
+        raw_prompt = str(prompt)
+        # If a backdrop is provided, use its slot for the latent canvas size; otherwise force 16:9.
+        char_count = len(self._gen.parse_character_refs(raw_prompt))
+        has_backdrop = backdrop_img is not None and str(backdrop_img).strip() != ""
+        if has_backdrop:
+            # build_images_and_prompt orders images as: [char1, (char2), (backdrop)]
+            latent_source = "image2" if char_count == 1 else "image3"
+        else:
+            latent_source = "empty_16_9"
         images, rewritten_prompt = self._gen.build_images_and_prompt(
-            prompt=str(prompt),
+            prompt=raw_prompt,
             backdrop_img=backdrop_img,
         )
+        print("combined_prompt:\n" + rewritten_prompt)
         return run_img_edit(
             images,
             rewritten_prompt,
             out,
             comfy_url=DEFAULT_COMFY_URL,
+            latent_source=latent_source,
         )
 
 

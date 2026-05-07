@@ -247,6 +247,17 @@
       "title": "FluxKontextImageScale (aux3)"
     }
   },
+  "433:200": {
+    "inputs": {
+      "width": 3840,
+      "height": 2176,
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent (16:9)"
+    }
+  },
   "433:3": {
     "inputs": {
       "seed": 0,

@@ -21,13 +21,8 @@ class QwenVL:
     def __init__(
         self,
         model_id: str = "models/hf/Qwen__Qwen3-VL-4B-Instruct",
-        *,
-        max_model_len: int = 16384,
     ) -> None:
-        if max_model_len < 1:
-            raise ValueError("max_model_len must be >= 1")
         self.model_id = model_id
-        self.max_model_len = max_model_len
 
         if ("/" in model_id or model_id.startswith(".")) and not Path(model_id).exists():
             raise RuntimeError(
@@ -79,7 +74,7 @@ class QwenVL:
         prompt: str,
         video_source: Optional[str] = None,
         *,
-        max_pixels: int = 768 * 28 * 28,
+        max_pixels: int = 1280 * 28 * 28,
     ) -> list[dict[str, Any]]:
         """Build Qwen3 chat-format messages from image sources and prompt."""
         content: list[dict[str, str]] = []
@@ -114,9 +109,7 @@ class QwenVL:
             )
             image_inputs, video_inputs, video_kwargs = process_vision_info(
                 messages,
-                image_patch_size=self.processor.image_processor.patch_size,
                 return_video_kwargs=True,
-                return_video_metadata=True,
             )
         except Exception as exc:
             LOGGER.exception("Qwen3-VL input preparation failed")

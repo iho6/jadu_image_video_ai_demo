@@ -87,6 +87,32 @@ def build_polish_edit_prompt_text(user_prompt: str) -> str:
 
 
 # =============================================================================
+# Ref-guided generation (code/ref_guided_gen.py)
+# =============================================================================
+
+def append_reference_constraints(
+    prompt: str,
+    *,
+    character_ref_count: int,
+    backdrop_idx: int | None,
+) -> str:
+    suffix: list[str] = []
+    if backdrop_idx is not None:
+        suffix.append(f"Use image {backdrop_idx} as the scene/backdrop reference.")
+    suffix.append(
+        "Keep the appearance, clothing, and all details of each character "
+        f"the same as in the {character_ref_count} image reference(s). Avoid deforming or stretching the character in any way."
+    )
+    out = str(prompt).strip()
+    extra = " ".join(suffix).strip()
+    if not out:
+        raise ValueError("prompt must be non-empty.")
+    if extra:
+        return f"{out}\n\n{extra}"
+    return out
+
+
+# =============================================================================
 # Character sheet creation (scripts/run_character_sheet_creation.py)
 # =============================================================================
 #

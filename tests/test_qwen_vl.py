@@ -32,8 +32,6 @@ class FakeBatch(dict):
 
 
 class FakeProcessor:
-    image_processor = SimpleNamespace(patch_size=14)
-
     @staticmethod
     def apply_chat_template(messages, tokenize, add_generation_prompt):
         assert tokenize is False
@@ -57,6 +55,9 @@ class FakeAutoProcessor:
 
 class FakeModel:
     device = "cpu"
+
+    def to(self, _device):
+        return self
 
     def eval(self):
         return self
@@ -90,8 +91,15 @@ def _load_qwen_vl_module(monkeypatch):
     fake_transformers.AutoModelForVision2Seq = FakeAutoModelForVision2Seq
     monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
 
+    fake_cuda = SimpleNamespace(
+        is_available=lambda: True,
+        is_bf16_supported=lambda: True,
+    )
     fake_torch = types.ModuleType("torch")
     fake_torch.bfloat16 = "bf16"
+    fake_torch.float16 = "fp16"
+    fake_torch.cuda = fake_cuda
+    fake_torch.device = lambda s: s
     fake_torch.inference_mode = lambda: FakeInferenceMode()
     monkeypatch.setitem(sys.modules, "torch", fake_torch)
 

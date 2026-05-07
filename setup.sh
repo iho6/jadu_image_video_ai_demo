@@ -143,6 +143,36 @@ ensure_tmux() {
   fi
 }
 
+ensure_ffmpeg() {
+  if command -v ffmpeg >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "ffmpeg is required (video normalization). Installing ffmpeg via apt..." >&2
+  if ! command -v apt-get >/dev/null 2>&1; then
+    echo "apt-get is unavailable; install ffmpeg and retry." >&2
+    exit 1
+  fi
+
+  local runner
+  if [[ "$(id -u)" == "0" ]]; then
+    runner=""
+  elif command -v sudo >/dev/null 2>&1; then
+    runner="sudo"
+  else
+    echo "sudo is unavailable; install ffmpeg and retry." >&2
+    exit 1
+  fi
+
+  apt_get_update_robust "${runner}"
+  ${runner:+$runner }apt-get install -y ffmpeg
+
+  if ! command -v ffmpeg >/dev/null 2>&1; then
+    echo "ffmpeg install completed but ffmpeg still not on PATH. Open a new shell and retry." >&2
+    exit 1
+  fi
+}
+
 port_in_use() {
   local port="$1"
   if command -v ss >/dev/null 2>&1; then
@@ -263,6 +293,7 @@ meta_log "Downloading models (utils/load_comfy_models.py --img-edit --edit-angle
 "${VENV_PYTHON}" utils/load_comfy_models.py --img-edit --edit-angle
 
 ensure_tmux
+ensure_ffmpeg
 
 SKIP_COMFY_START=0
 if port_in_use "${COMFY_PORT_VAL}"; then
