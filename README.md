@@ -167,6 +167,8 @@ python -m pytest tests/ -q
 
 **Demo variables** (from `tests/test_commands.md` lines 11–16)
 
+Ran using RunPod SSH GPU Env on 4090 GPU.
+
 ```powershell
 $CAT_IMG="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-ea3a392a-23de-43c4-a915-83ebcc2a2725"
 $VET_IMG="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a"
