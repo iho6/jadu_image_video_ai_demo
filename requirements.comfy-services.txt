@@ -1,8 +1,0 @@
-# Default setup profile: ComfyUI + Comfy-backed services + tests.
-#
-# Scope intentionally excludes direct diffusers runtime used by:
-#   - code/qwen_img_edit.py
-#   - scripts/run_qwen_img_edit.py
-
--r comfyui/requirements.txt
-pytest>=8.0

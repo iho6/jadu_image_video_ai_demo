@@ -26,7 +26,7 @@ cd "${REPO_ROOT}"
 
 VENV_PATH="${REPO_ROOT}/.venv"
 VENV_PYTHON="${VENV_PATH}/bin/python"
-REQUIREMENTS_PY="${REPO_ROOT}/requirements.comfy-services.txt"
+REQUIREMENTS_PY="${REPO_ROOT}/requirements.txt"
 COMFY_APP_ROOT="${REPO_ROOT}/comfyui"
 COMFY_BASE_DIR="${COMFY_APP_ROOT}"
 COMFY_PORT_VAL="${COMFY_PORT:-8188}"
