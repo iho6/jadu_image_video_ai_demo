@@ -118,10 +118,10 @@ def append_reference_constraints(
 #
 # These are kept as constants so pipelines can reference them without embedding
 # prompt literals inside business logic.
-ANGLE_PROMPT_RIGHT_90 = "Rotate the camera 90 degrees to the right."
-ANGLE_PROMPT_LEFT_90 = "Rotate the camera 90 degrees to the left."
-ANGLE_PROMPT_BACK_180 = "Rotate the camera 180 degrees to the back of the character."
-ANGLE_PROMPT_CLOSE_UP = "Turn the camera to a close-up."
+ANGLE_PROMPT_RIGHT_90 = "Rotate the camera 90 degrees to the right. Show only 1 single character in the output image."
+ANGLE_PROMPT_LEFT_90 = "Rotate the camera 90 degrees to the left. Show only 1 single character in the output image."
+ANGLE_PROMPT_BACK_180 = "Rotate the camera 180 degrees to the back of the character. Show only 1 single character in the output image."
+ANGLE_PROMPT_CLOSE_UP = "Turn the camera to a close-up. Show only 1 single character in the output image."
 
 FULLBODY_CHECK_PROMPT = (
     "You are strictly inspecting a character image on whether it shows the full body "

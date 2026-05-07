@@ -137,6 +137,27 @@ class CharacterSheetCreation:
         canvas.save(out_path)
         return out_path
 
+    @staticmethod
+    def _letterbox_fit(
+        im: Image.Image,
+        target_w: int,
+        target_h: int,
+        bg_color: tuple[int, int, int],
+    ) -> Image.Image:
+        """Scale ``im`` to fit inside ``(target_w, target_h)`` preserving aspect ratio,
+        then centre it on a background canvas of that size.  No stretching occurs."""
+        resample = getattr(Image, "Resampling", Image).LANCZOS
+        iw, ih = im.size
+        scale = min(target_w / iw, target_h / ih)
+        rw = max(1, int(round(iw * scale)))
+        rh = max(1, int(round(ih * scale)))
+        scaled = im.resize((rw, rh), resample=resample)
+        canvas = Image.new("RGB", (target_w, target_h), bg_color)
+        ox = (target_w - rw) // 2
+        oy = (target_h - rh) // 2
+        canvas.paste(scaled, (ox, oy))
+        return canvas
+
     def _stitch_square_plus_closeup(
         self,
         images: list[Image.Image],
@@ -145,30 +166,31 @@ class CharacterSheetCreation:
         if len(images) != 5:
             raise ValueError("Expected exactly 5 images: [original, right, left, back, closeup].")
         front, right, left, back, closeup = images
-        tile_w, tile_h = front.size
-        if tile_w <= 0 or tile_h <= 0:
-            raise ValueError(f"Invalid tile size: {(tile_w, tile_h)}")
 
-        resample = getattr(Image, "Resampling", Image).LANCZOS
-        # 2x2 square (non-closeup) - order requested:
-        # top-left front, top-right left side, bottom-left right side, bottom-right back
-        front_t = front.resize((tile_w, tile_h), resample=resample)
-        left_t = left.resize((tile_w, tile_h), resample=resample)
-        right_t = right.resize((tile_w, tile_h), resample=resample)
-        back_t = back.resize((tile_w, tile_h), resample=resample)
+        # Use the first generated angle output as the canonical tile size so that
+        # no generated tile is ever stretched (they share the same workflow/resolution).
+        tile_w, tile_h = right.size
+        if tile_w <= 0 or tile_h <= 0:
+            raise ValueError(f"Invalid tile size from generated output: {(tile_w, tile_h)}")
+
+        # Letterbox-fit each image into the canonical tile box — preserves aspect ratio.
+        front_t = self._letterbox_fit(front, tile_w, tile_h, bg_color)
+        right_t = self._letterbox_fit(right, tile_w, tile_h, bg_color)
+        left_t = self._letterbox_fit(left, tile_w, tile_h, bg_color)
+        back_t = self._letterbox_fit(back, tile_w, tile_h, bg_color)
 
         square_w = tile_w * 2
         square_h = tile_h * 2
 
-        # Closeup scaled to match square height.
+        # Closeup: letterbox-fit into a column whose height equals the 2×2 square.
         cw, ch = closeup.size
         if cw <= 0 or ch <= 0:
             raise ValueError(f"Invalid closeup size: {(cw, ch)}")
-        scale = square_h / ch
-        closeup_w = max(1, int(round(cw * scale)))
-        closeup_t = closeup.resize((closeup_w, square_h), resample=resample)
+        closeup_col_w = max(1, int(round(cw * (square_h / ch))))
+        closeup_t = self._letterbox_fit(closeup, closeup_col_w, square_h, bg_color)
 
-        canvas = Image.new("RGB", (square_w + closeup_w, square_h), bg_color)
+        # 2×2 grid layout (top-left: front, top-right: left-side, bottom-left: right-side, bottom-right: back)
+        canvas = Image.new("RGB", (square_w + closeup_col_w, square_h), bg_color)
         canvas.paste(front_t, (0, 0))
         canvas.paste(left_t, (tile_w, 0))
         canvas.paste(right_t, (0, tile_h))

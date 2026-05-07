@@ -177,6 +177,8 @@ $SCENE_VIDEO="https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/ass
 
 ### Ref-guided generation: Eli on couch (with backdrop)
 
+Still imperfect due to lack of time to refine prompt. And ref gen works better with controlNet, not yet implemented.
+
 **Command**
 
 ```bash
@@ -202,17 +204,27 @@ python scripts/run_ref_guided_gen.py \
 <summary>Key logs (click to expand)</summary>
 
 ```text
+(.venv) root@5255d91fbdee:~/jadu_image_video_ai_demo# python scripts/run_ref_guided_gen.py --prompt "@Eli sitting on the couch" --backdrop-img $ROOM_IMG --output-dir output/ref-guided-gen
+
 combined_prompt:
 Character in image 1 sitting on the couch
 
 Use image 2 as the scene/backdrop reference. Keep the appearance, clothing, and all details of each character the same as in the 1 image reference(s).
-[comfy][info] ... (queue/history events)
-saved /root/jadu_image_video_ai_demo/output/ref-guided-gen/ComfyUI_00006_.png
+[comfy][info] prompt.queue.start job=0ddf86864d794b68807fc6d39945e3e8 data={"client_id": "0ddf86864d794b68807fc6d39945e3e8", "timeout": 1200}
+[comfy][info] job.sent job=0ddf86864d794b68807fc6d39945e3e8 prompt=da69e199-4615-46f1-8002-3c21e5815a11 data={"prompt_id": "da69e199-4615-46f1-8002-3c21e5815a11", "queue_number": 10}
+[comfy][info] prompt.queue.ok job=0ddf86864d794b68807fc6d39945e3e8 prompt=da69e199-4615-46f1-8002-3c21e5815a11 elapsed_ms=4 data={"prompt_id": "da69e199-4615-46f1-8002-3c21e5815a11"}
+[comfy][info] history.poll.start job=0ddf86864d794b68807fc6d39945e3e8 prompt=da69e199-4615-46f1-8002-3c21e5815a11 data={"poll_interval_sec": 0.5, "prompt_id": "da69e199-4615-46f1-8002-3c21e5815a11", "timeout_sec": 600.0}
+[comfy][info] job.running job=0ddf86864d794b68807fc6d39945e3e8 prompt=da69e199-4615-46f1-8002-3c21e5815a11 elapsed_ms=4367 data={"source": "jobs_api"}
+[comfy][info] job.returned job=0ddf86864d794b68807fc6d39945e3e8 prompt=da69e199-4615-46f1-8002-3c21e5815a11 elapsed_ms=140117 data={"outputs_count": 1, "result": "success", "source": "jobs_api"}
+[comfy][info] history.poll.ok job=0ddf86864d794b68807fc6d39945e3e8 prompt=da69e199-4615-46f1-8002-3c21e5815a11 elapsed_ms=136435 data={"polls": 248, "prompt_id": "da69e199-4615-46f1-8002-3c21e5815a11"}
+saved /root/jadu_image_video_ai_demo/output/ref-guided-gen/ComfyUI_00001_.png
 ```
 
 </details>
 
 ### Character sheet creation: Eli
+
+Still haven't added segmentation tool for re-overlaying a background for optimal dimension/color.
 
 **Command**
 
@@ -228,6 +240,8 @@ python scripts/run_character_sheet_creation.py --image $VET_IMG --character-name
 <summary>Sample log (click to expand)</summary>
 
 ```text
+(.venv) root@5255d91fbdee:~/jadu_image_video_ai_demo# python scripts/run_character_sheet_creation.py --image $VET_IMG --character-name "Eli" --full-body-check
+
 === args ===
 image='https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a'
 character_name='Eli'
@@ -235,10 +249,52 @@ output_dir='storage/Eli'
 comfy_url='http://127.0.0.1:8188'
 full_body_check=True
 character_description=False
+=== ok: args elapsed_ms=0 ===
+
+=== check: comfy reachable ===
+=== ok: check: comfy reachable elapsed_ms=8 ===
+
+=== init: character sheet creator ===
+/root/jadu_image_video_ai_demo/.venv/lib/python3.11/site-packages/transformers/models/auto/modeling_auto.py:2284: FutureWarning: The class `AutoModelForVision2Seq` is deprecated and will be removed in v5.0. Please use `AutoModelForImageTextToText` instead.
+  warnings.warn(
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards: 100%|████████████████████████████| 2/2 [00:00<00:00,  2.50it/s]
+=== ok: init: character sheet creator elapsed_ms=24255 ===
+
+=== step: character sheet creation ===
 
 === step: full-body-check (QwenVL) ===
-... (QwenVL output) ...
-=== ok: step: character sheet creation elapsed_ms=... ===
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+=== ok: step: full-body-check (QwenVL) elapsed_ms=4043 ===
+[comfy][info] prompt.queue.start job=31b109bfd579425da4c40e3a19c0cf4e data={"client_id": "31b109bfd579425da4c40e3a19c0cf4e", "timeout": 120}
+[comfy][info] job.sent job=31b109bfd579425da4c40e3a19c0cf4e prompt=ae675c6f-482c-42ee-b650-53eac5b838cb data={"prompt_id": "ae675c6f-482c-42ee-b650-53eac5b838cb", "queue_number": 2}
+[comfy][info] prompt.queue.ok job=31b109bfd579425da4c40e3a19c0cf4e prompt=ae675c6f-482c-42ee-b650-53eac5b838cb elapsed_ms=2 data={"prompt_id": "ae675c6f-482c-42ee-b650-53eac5b838cb"}
+[comfy][info] history.poll.start job=31b109bfd579425da4c40e3a19c0cf4e prompt=ae675c6f-482c-42ee-b650-53eac5b838cb data={"poll_interval_sec": 0.5, "prompt_id": "ae675c6f-482c-42ee-b650-53eac5b838cb", "timeout_sec": 600.0}
+[comfy][info] job.running job=31b109bfd579425da4c40e3a19c0cf4e prompt=ae675c6f-482c-42ee-b650-53eac5b838cb elapsed_ms=7782 data={"source": "jobs_api"}
+[comfy][info] job.returned job=31b109bfd579425da4c40e3a19c0cf4e prompt=ae675c6f-482c-42ee-b650-53eac5b838cb elapsed_ms=128884 data={"result": "success", "source": "history"}
+[comfy][info] history.poll.ok job=31b109bfd579425da4c40e3a19c0cf4e prompt=ae675c6f-482c-42ee-b650-53eac5b838cb elapsed_ms=128872 data={"polls": 239, "prompt_id": "ae675c6f-482c-42ee-b650-53eac5b838cb"}
+[comfy][info] prompt.queue.start job=c48b5158fc55410b93c807c7baa52d03 data={"client_id": "c48b5158fc55410b93c807c7baa52d03", "timeout": 120}
+[comfy][info] job.sent job=c48b5158fc55410b93c807c7baa52d03 prompt=82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599 data={"prompt_id": "82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599", "queue_number": 3}
+[comfy][info] prompt.queue.ok job=c48b5158fc55410b93c807c7baa52d03 prompt=82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599 elapsed_ms=2 data={"prompt_id": "82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599"}
+[comfy][info] history.poll.start job=c48b5158fc55410b93c807c7baa52d03 prompt=82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599 data={"poll_interval_sec": 0.5, "prompt_id": "82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599", "timeout_sec": 600.0}
+[comfy][info] job.running job=c48b5158fc55410b93c807c7baa52d03 prompt=82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599 elapsed_ms=584 data={"source": "jobs_api"}
+[comfy][info] job.returned job=c48b5158fc55410b93c807c7baa52d03 prompt=82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599 elapsed_ms=126892 data={"result": "success", "source": "history"}
+[comfy][info] history.poll.ok job=c48b5158fc55410b93c807c7baa52d03 prompt=82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599 elapsed_ms=126883 data={"polls": 235, "prompt_id": "82bc1ebd-85f0-42d2-b8ed-fc5bd57f6599"}
+[comfy][info] prompt.queue.start job=ba296fa120e9470786f8583d87451acb data={"client_id": "ba296fa120e9470786f8583d87451acb", "timeout": 120}
+[comfy][info] job.sent job=ba296fa120e9470786f8583d87451acb prompt=52f1bfc0-c8ae-4ad9-9589-9f740b63658c data={"prompt_id": "52f1bfc0-c8ae-4ad9-9589-9f740b63658c", "queue_number": 4}
+[comfy][info] prompt.queue.ok job=ba296fa120e9470786f8583d87451acb prompt=52f1bfc0-c8ae-4ad9-9589-9f740b63658c elapsed_ms=2 data={"prompt_id": "52f1bfc0-c8ae-4ad9-9589-9f740b63658c"}
+[comfy][info] history.poll.start job=ba296fa120e9470786f8583d87451acb prompt=52f1bfc0-c8ae-4ad9-9589-9f740b63658c data={"poll_interval_sec": 0.5, "prompt_id": "52f1bfc0-c8ae-4ad9-9589-9f740b63658c", "timeout_sec": 600.0}
+[comfy][info] job.running job=ba296fa120e9470786f8583d87451acb prompt=52f1bfc0-c8ae-4ad9-9589-9f740b63658c elapsed_ms=592 data={"source": "jobs_api"}
+[comfy][info] job.returned job=ba296fa120e9470786f8583d87451acb prompt=52f1bfc0-c8ae-4ad9-9589-9f740b63658c elapsed_ms=123267 data={"result": "success", "source": "history"}
+[comfy][info] history.poll.ok job=ba296fa120e9470786f8583d87451acb prompt=52f1bfc0-c8ae-4ad9-9589-9f740b63658c elapsed_ms=123258 data={"polls": 227, "prompt_id": "52f1bfc0-c8ae-4ad9-9589-9f740b63658c"}
+[comfy][info] prompt.queue.start job=d21f71a1afba494d85a97e092d77aeb3 data={"client_id": "d21f71a1afba494d85a97e092d77aeb3", "timeout": 120}
+[comfy][info] job.sent job=d21f71a1afba494d85a97e092d77aeb3 prompt=39e0e551-77b2-45de-b60e-220c499f0b91 data={"prompt_id": "39e0e551-77b2-45de-b60e-220c499f0b91", "queue_number": 5}
+[comfy][info] prompt.queue.ok job=d21f71a1afba494d85a97e092d77aeb3 prompt=39e0e551-77b2-45de-b60e-220c499f0b91 elapsed_ms=2 data={"prompt_id": "39e0e551-77b2-45de-b60e-220c499f0b91"}
+[comfy][info] history.poll.start job=d21f71a1afba494d85a97e092d77aeb3 prompt=39e0e551-77b2-45de-b60e-220c499f0b91 data={"poll_interval_sec": 0.5, "prompt_id": "39e0e551-77b2-45de-b60e-220c499f0b91", "timeout_sec": 600.0}
+[comfy][info] job.running job=d21f71a1afba494d85a97e092d77aeb3 prompt=39e0e551-77b2-45de-b60e-220c499f0b91 elapsed_ms=532 data={"source": "jobs_api"}
+[comfy][info] job.returned job=d21f71a1afba494d85a97e092d77aeb3 prompt=39e0e551-77b2-45de-b60e-220c499f0b91 elapsed_ms=123760 data={"outputs_count": 2, "result": "success", "source": "jobs_api"}
+[comfy][info] history.poll.ok job=d21f71a1afba494d85a97e092d77aeb3 prompt=39e0e551-77b2-45de-b60e-220c499f0b91 elapsed_ms=123752 data={"polls": 226, "prompt_id": "39e0e551-77b2-45de-b60e-220c499f0b91"}
+=== ok: step: character sheet creation elapsed_ms=510324 ===
 /root/jadu_image_video_ai_demo/storage/Eli/Eli_character_sheet.png
 ```
 
@@ -282,7 +338,7 @@ The first image is a static, cartoon-style illustration of a cozy, warmly lit li
 
 The second image is a dynamic, animated scene featuring a woman in a dark convertible car at night. She has short, dark hair, wears large black sunglasses, and is dressed in a black blazer with a red pendant necklace. Her expression is serious and focused as she grips the steering wheel. The car’s interior is dark, and the background is a blurred, dark expanse, suggesting motion and speed. The lighting is low, with subtle highlights on her face and the car’s interior, emphasizing a mysterious or intense mood.
 
-The two images are visually distinct in several ways. The first is a static, warm, and tranquil interior scene, while the second is a dynamic, cool-toned
+The two images are visually distinct in several ways. The first is a static, warm, and tranquil interior scene, while the second is a dynamic, cool-toned scene focused on action and atmosphere.
 ```
 
 </details>

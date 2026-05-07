@@ -28,6 +28,8 @@ from utils.comfyui_utils import (
 )
 from utils.cli_exceptions import format_exception_chain_for_log, print_cli_error
 from utils.comfyui_logging import ComfyJobContext, build_comfy_logger
+from PIL import Image
+
 from utils.image_utils import check_valid_image_dimensions, load_image, pil_to_png_bytes
 
 DEFAULT_COMFY_URL = "http://127.0.0.1:8188"
@@ -69,6 +71,20 @@ def run_edit_angle(
     png = pil_to_png_bytes(pil)
     logger.event(event="job.inputs.validated", level="debug", ctx=ctx, data={"image_source": image})
     phase = ComfyPhaseTracker(logger=logger, ctx=ctx)
+
+    # Pre-resize to the same pixel budget that ImageScaleToTotalPixels would produce,
+    # using LANCZOS so ComfyUI's internal rescaler receives an already-correct image
+    # and effectively performs a no-op scale (avoiding nearest-exact artefacts).
+    target_pixels = megapixels * 1_000_000
+    scale = (target_pixels / (w * h)) ** 0.5
+    target_w = max(8, int(w * scale) // 8 * 8)
+    target_h = max(8, int(h * scale) // 8 * 8)
+    if (target_w, target_h) != (w, h):
+        resample = getattr(Image, "Resampling", Image).LANCZOS
+        pil = pil.resize((target_w, target_h), resample=resample)
+        png = pil_to_png_bytes(pil)
+        megapixels = round((target_w * target_h) / 1_000_000.0, 3)
+
     name = upload_image(
         base,
         png,

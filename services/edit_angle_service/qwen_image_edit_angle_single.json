@@ -223,7 +223,7 @@
   },
   "65:33:28": {
     "inputs": {
-      "upscale_method": "nearest-exact",
+      "upscale_method": "lanczos",
       "megapixels": 1,
       "resolution_steps": 1,
       "image": [
