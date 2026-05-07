@@ -22,6 +22,7 @@ for _p in (str(_ROOT), str(_ROOT / "code")):
 
 from ref_guided_gen import RefGuidedGen  # type: ignore[import-not-found]  # noqa: E402
 from services.img_edit_service.img_edit import DEFAULT_COMFY_URL, run_img_edit  # noqa: E402
+from utils.cli_exceptions import print_cli_error  # noqa: E402
 from utils.comfyui_utils import ComfyPromptError  # noqa: E402
 
 
@@ -98,7 +99,7 @@ def main() -> None:
         for p in paths:
             print("saved", p.resolve())
     except (ComfyPromptError, FileNotFoundError, OSError, TimeoutError, ValueError, RuntimeError) as e:
-        print(f"error: {e}", file=sys.stderr)
+        print_cli_error(e)
         raise SystemExit(1) from e
 
 

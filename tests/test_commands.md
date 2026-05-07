@@ -14,6 +14,28 @@ $ROOM_IMG="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64
 $SCENE_VIDEO="https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-ee0e77cc-d735-4d35-bcbe-ef89eaa23789"
 ```
 
+
+## 6) Ref-guided generation (character sheets + run_ref_guided_gen)
+
+```powershell
+# Use existing demo images as character refs (you can replace these with your own)
+
+# 1) Create character sheets first (writes to storage/<name>/)
+python scripts/run_character_sheet_creation.py --image $VET_IMG --character-name "Eli"
+python scripts/run_character_sheet_creation.py --image $GIRL_IMG --character-name "Beth"
+
+# 2) Run ref-guided generation
+# With backdrop/scene reference:
+python scripts/run_ref_guided_gen.py --prompt "@Eli sitting on the couch, staring at @Beth's phone" --backdrop-img $ROOM_IMG --output-dir output/ref-guided-gen
+
+# Without backdrop:
+python scripts/run_ref_guided_gen.py --prompt "@Eli sitting on the couch, staring at @Beth's phone" --output-dir output/ref-guided-gen
+```
+
+Notes:
+- This requires `storage/Eli/Eli_character_sheet.png` and `storage/Beth/Beth_character_sheet.png` to exist (created by the commands above).
+- `run_ref_guided_gen.py` supports up to **2** unique `@CharacterName` refs
+
 ## 2) img_edit (1, 2, 3 image inputs)
 
 ```powershell
@@ -66,32 +88,4 @@ python scripts/run_qwen_vl.py --video $SCENE_VIDEO --prompt "Describe this video
 python scripts/run_qwen_vl.py --images $ROOM_IMG --video $SCENE_VIDEO --prompt "Describe both the image and the video with as much detail as possible, then explain what visual details are consistent or different between them."
 ```
 
-## 5) Optional Comfy URL override (if not default 8188)
 
-```powershell
-python services/img_edit_service/img_edit.py --images $CAT_IMG --prompt "Enhance details." --comfy-url "http://127.0.0.1:8188"
-python services/edit_angle_service/edit_angle.py --image $CAT_IMG --prompt "Turn the camera to a close-up." --comfy-url "http://127.0.0.1:8188"
-```
-
-## 6) Ref-guided generation (character sheets + run_ref_guided_gen)
-
-```powershell
-# Use existing demo images as character refs (you can replace these with your own)
-$ELI_IMG=$VET_IMG
-$BETH_IMG=$GIRL_IMG
-
-# 1) Create character sheets first (writes to storage/<name>/)
-python scripts/run_character_sheet_creation.py --image $ELI_IMG --character-name "Eli"
-python scripts/run_character_sheet_creation.py --image $BETH_IMG --character-name "Beth"
-
-# 2) Run ref-guided generation
-# With backdrop/scene reference:
-python scripts/run_ref_guided_gen.py --prompt "@Eli sitting on the couch, staring at @Beth's phone" --backdrop-img $ROOM_IMG --output-dir output/ref-guided-gen
-
-# Without backdrop:
-python scripts/run_ref_guided_gen.py --prompt "@Eli sitting on the couch, staring at @Beth's phone" --output-dir output/ref-guided-gen
-```
-
-Notes:
-- This requires `storage/Eli/Eli_character_sheet.png` and `storage/Beth/Beth_character_sheet.png` to exist (created by the commands above).
-- `run_ref_guided_gen.py` supports up to **2** unique `@CharacterName` refs

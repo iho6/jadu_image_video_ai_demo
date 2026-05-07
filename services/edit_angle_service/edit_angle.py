@@ -26,6 +26,7 @@ from utils.comfyui_utils import (
     view_image_bytes,
     wait_for_history_entry,
 )
+from utils.cli_exceptions import format_exception_chain_for_log, print_cli_error
 from utils.comfyui_logging import ComfyJobContext, build_comfy_logger
 from utils.image_utils import load_image, pil_to_png_bytes
 
@@ -176,9 +177,13 @@ def handler(args: argparse.Namespace) -> int:
             event="job.error",
             level="error",
             ctx=ctx,
-            data={"error": str(e), "error_type": type(e).__name__},
+            data={
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": format_exception_chain_for_log(e),
+            },
         )
-        print(f"error: {e}", file=sys.stderr)
+        print_cli_error(e)
         return 1
     for pth in paths:
         print("saved", pth.resolve())

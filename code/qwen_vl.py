@@ -31,6 +31,7 @@ class QwenVL:
         try:
             self.processor = AutoProcessor.from_pretrained(model_id)
         except Exception as exc:
+            LOGGER.exception("Failed to load Qwen3-VL processor for %s", model_id)
             raise RuntimeError(
                 f"Failed to initialize Qwen3-VL processor '{model_id}'."
             ) from exc
@@ -47,6 +48,7 @@ class QwenVL:
                 seed=0,
             )
         except Exception as exc:
+            LOGGER.exception("Failed to initialize vLLM engine for %s", model_id)
             raise RuntimeError(
                 f"Failed to initialize vLLM engine for '{model_id}'."
             ) from exc

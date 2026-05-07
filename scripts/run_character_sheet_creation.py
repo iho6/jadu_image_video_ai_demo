@@ -19,6 +19,7 @@ for _p in (str(_ROOT), str(_ROOT / "code")):
         sys.path.insert(0, _p)
 
 from character_sheet_creation import CharacterSheetCreation  # type: ignore[import-not-found]  # noqa: E402
+from utils.cli_exceptions import print_cli_error  # noqa: E402
 from utils.comfyui_utils import ComfyPromptError  # noqa: E402
 from utils.generic_utils import safe_filename_component  # noqa: E402
 
@@ -166,7 +167,7 @@ def main() -> None:
             )
         print(path.resolve())
     except (ComfyPromptError, OSError, TimeoutError, ValueError, RuntimeError) as e:
-        print(f"error: {e}", file=sys.stderr)
+        print_cli_error(e)
         raise SystemExit(1) from e
 
 
