@@ -31,6 +31,8 @@ COMFY_APP_ROOT="${REPO_ROOT}/comfyui"
 COMFY_BASE_DIR="${COMFY_APP_ROOT}"
 COMFY_PORT_VAL="${COMFY_PORT:-8188}"
 SESSION_NAME="jadu2026_comfy"
+LOG_DIR="${REPO_ROOT}/logs"
+COMFY_LOG="${LOG_DIR}/comfy_setup_startup.log"
 
 elapsed_text() {
   local now elapsed
@@ -204,6 +206,10 @@ diagnose_comfy_start_failure() {
   else
     echo "- tmux session '${SESSION_NAME}' is not running." >&2
   fi
+  if [[ -f "${COMFY_LOG}" ]]; then
+    echo "- Last 120 lines of ${COMFY_LOG}:" >&2
+    tail -n 120 "${COMFY_LOG}" >&2 || true
+  fi
   echo "Hints: stop conflicting listeners or set COMFY_PORT to a free port, then rerun setup." >&2
 }
 
@@ -252,7 +258,13 @@ if port_in_use "${COMFY_PORT_VAL}"; then
   meta_log "Port 127.0.0.1:${COMFY_PORT_VAL} already in use; skipping Comfy launch."
   listener_info_for_port "${COMFY_PORT_VAL}" || true
   if ! comfy_http_ready; then
-    echo "Warning: listener on 127.0.0.1:${COMFY_PORT_VAL} did not respond as Comfy /system_stats." >&2
+    url="http://127.0.0.1:${COMFY_PORT_VAL}/system_stats"
+    echo "Warning: listener on 127.0.0.1:${COMFY_PORT_VAL} did not respond as Comfy /system_stats (${url})." >&2
+    if command -v curl >/dev/null 2>&1; then
+      echo "--- Begin HTTP probe (${url}) ---" >&2
+      curl -i --max-time 2 "${url}" 2>&1 | sed -n '1,40p' >&2 || true
+      echo "--- End HTTP probe (${url}) ---" >&2
+    fi
     echo "Continuing without launching a new Comfy process." >&2
   fi
 fi
@@ -272,6 +284,8 @@ _SH_PY="$(printf '%q' "${VENV_PYTHON}")"
 COMFY_CMD="cd ${_SH_COMFY_APP_ROOT} && export PYTHONUTF8=1 PYTHONIOENCODING=utf-8 && exec ${_SH_PY} main.py --base-directory ${_SH_COMFY_BASE_DIR} --disable-metadata --listen 127.0.0.1 --port ${COMFY_PORT_VAL} ${CACHE_EXTRA}"
 
 if (( ! SKIP_COMFY_START )); then
+  mkdir -p "${LOG_DIR}"
+  : > "${COMFY_LOG}"
   if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
     meta_log "Replacing existing tmux session '${SESSION_NAME}'"
     tmux kill-session -t "${SESSION_NAME}"
@@ -279,6 +293,7 @@ if (( ! SKIP_COMFY_START )); then
 
   meta_log "Starting ComfyUI in tmux session '${SESSION_NAME}' (listen 127.0.0.1:${COMFY_PORT_VAL})"
   tmux new-session -d -s "${SESSION_NAME}" "${COMFY_CMD}"
+  tmux pipe-pane -o -t "${SESSION_NAME}" "cat >> ${COMFY_LOG}"
   _expected_pane_pid="$(tmux display-message -p -t "${SESSION_NAME}" '#{pane_pid}' 2>/dev/null || true)"
   if [[ -z "${_expected_pane_pid}" ]]; then
     echo "Failed to inspect tmux pane pid for '${SESSION_NAME}'." >&2
