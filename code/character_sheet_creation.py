@@ -50,17 +50,25 @@ class CharacterSheetCreation:
             raise RuntimeError("Full-body generation produced no outputs.")
         return Path(paths[0])
 
-    def character_sheet_creation(self, image_source: str, character_name: str, output_dir: Path) -> Path:
+    def character_sheet_creation(
+        self,
+        image_source: str,
+        character_name: str,
+        output_dir: Path,
+        *,
+        full_body_check: bool = False,
+    ) -> Path:
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
 
-        is_fullbody = character_fullbody_check(
-            runner=self._vlm_runner,
-            image_source=image_source,
-            prompt=FULLBODY_CHECK_PROMPT,
-        )
-        if not is_fullbody:
-            return self.fullbody_image_creation(image_source, out)
+        if full_body_check:
+            is_fullbody = character_fullbody_check(
+                runner=self._vlm_runner,
+                image_source=image_source,
+                prompt=FULLBODY_CHECK_PROMPT,
+            )
+            if not is_fullbody:
+                return self.fullbody_image_creation(image_source, out)
 
         pre = self._preprocess_qwen_9_16(image_source, out)
 

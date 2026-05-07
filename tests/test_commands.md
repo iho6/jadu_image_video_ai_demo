@@ -21,8 +21,14 @@ $SCENE_VIDEO="https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/ass
 # Use existing demo images as character refs (you can replace these with your own)
 
 # 1) Create character sheets first (writes to storage/<name>/)
+# Default: does NOT run VLM full-body gating.
 python scripts/run_character_sheet_creation.py --image $VET_IMG --character-name "Eli"
 python scripts/run_character_sheet_creation.py --image $GIRL_IMG --character-name "Beth"
+
+# Optional: strict full-body gate (uses VLM). If NOT full-body, prints a corrected full-body
+# image path and exits non-zero.
+python scripts/run_character_sheet_creation.py --image $VET_IMG --character-name "Eli" --full-body-check
+python scripts/run_character_sheet_creation.py --image $GIRL_IMG --character-name "Beth" --full-body-check
 
 # 2) Run ref-guided generation
 # With backdrop/scene reference:

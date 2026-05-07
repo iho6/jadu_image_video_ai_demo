@@ -1,9 +1,11 @@
 # Setup
 
-Install dependencies:
+## Quickstart (recommended)
+
+Run the repo setup script (creates `.venv`, installs requirements, downloads models, and starts ComfyUI in tmux):
 
 ```bash
-pip install -r requirements.txt
+./setup.sh
 ```
 
 ## Service

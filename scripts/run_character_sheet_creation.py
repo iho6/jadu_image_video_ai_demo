@@ -49,10 +49,16 @@ class RunCharacterSheetCreation:
         image: str,
         character_name: str,
         output_dir: Path,
+        full_body_check: bool,
     ) -> Path:
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
-        return self._creator.character_sheet_creation(str(image), str(character_name), out)
+        return self._creator.character_sheet_creation(
+            str(image),
+            str(character_name),
+            out,
+            full_body_check=bool(full_body_check),
+        )
 
     def run_fullbody_image_creation(
         self,
@@ -101,6 +107,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="When set, generate and save <character_name>_character_description.json via VLM.",
     )
+    parser.add_argument(
+        "--full-body-check",
+        action="store_true",
+        help=(
+            "When set, run a VLM full-body Yes/No gate before creating the sheet. "
+            "If NOT full-body, generate a corrected full-body image, print its path, and exit non-zero."
+        ),
+    )
 
     args = parser.parse_args(argv)
     if not str(args.image).strip():
@@ -123,18 +137,17 @@ def main() -> None:
             image=args.image,
             character_name=args.character_name,
             output_dir=Path(args.output_dir),
+            full_body_check=bool(args.full_body_check),
         )
 
         expected = runner.expected_sheet_path(
             output_dir=Path(args.output_dir),
             character_name=args.character_name,
         )
-        if path.resolve() != expected.resolve():
-            # Non-fullbody branch: create fullbody image, print it, then exit 1.
-            fb = runner.run_fullbody_image_creation(
-                image=args.image,
-                output_dir=Path(args.output_dir),
-            )
+        if bool(args.full_body_check) and path.resolve() != expected.resolve():
+            # Full-body check is enabled and input failed the gate.
+            # `path` is the generated corrected full-body image path.
+            fb = Path(path)
             if args.character_description:
                 desc = runner.run_describe_character(image=str(fb))
                 payload = {
