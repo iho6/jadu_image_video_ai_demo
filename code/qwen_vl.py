@@ -1,13 +1,14 @@
-"""Qwen3-VL wrapper for multi-image + single-prompt evaluation via vLLM."""
+"""Qwen3-VL wrapper for multi-image + single-prompt evaluation via Transformers."""
 
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any, Optional, Sequence
 
+import torch
 from qwen_vl_utils import process_vision_info
-from transformers import AutoProcessor
-from vllm import LLM, SamplingParams
+from transformers import AutoModelForVision2Seq, AutoProcessor
 
 from utils.image_utils import load_image
 
@@ -15,11 +16,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class QwenVL:
-    """Orchestrates Qwen3-VL vLLM input preparation and inference."""
+    """Orchestrates Qwen3-VL Transformers input preparation and inference."""
 
     def __init__(
         self,
-        model_id: str = "Qwen/Qwen3-VL-8B-Thinking-FP8",
+        model_id: str = "models/hf/Qwen__Qwen3-VL-4B-Instruct",
         *,
         max_model_len: int = 16384,
     ) -> None:
@@ -27,32 +28,50 @@ class QwenVL:
             raise ValueError("max_model_len must be >= 1")
         self.model_id = model_id
         self.max_model_len = max_model_len
+
+        if ("/" in model_id or model_id.startswith(".")) and not Path(model_id).exists():
+            raise RuntimeError(
+                f"Qwen3-VL weights not found at '{model_id}'.\n"
+                "Download them first, e.g.:\n"
+                "  python utils/download_hf_weights.py --repo-id Qwen/Qwen3-VL-4B-Instruct "
+                "--local-dir models/hf/Qwen__Qwen3-VL-4B-Instruct\n"
+                "Or pass a valid local path / HF repo id."
+            )
+
+        if not torch.cuda.is_available():
+            raise RuntimeError(
+                "CUDA is not available for QwenVL. "
+                f"torch.version.cuda={torch.version.cuda}. "
+                "Verify the NVIDIA driver matches this torch CUDA build."
+            )
+        self.device = torch.device("cuda:0")
+        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+
         LOGGER.info("Loading Qwen3-VL processor: %s", model_id)
         try:
-            self.processor = AutoProcessor.from_pretrained(model_id)
+            self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
         except Exception as exc:
             LOGGER.exception("Failed to load Qwen3-VL processor for %s", model_id)
             raise RuntimeError(
                 f"Failed to initialize Qwen3-VL processor '{model_id}'."
             ) from exc
 
-        LOGGER.info("Loading vLLM engine for: %s", model_id)
+        LOGGER.info("Loading Qwen3-VL model: %s (device=%s, dtype=%s)", model_id, self.device, dtype)
         try:
-            self.llm = LLM(
-                model=model_id,
-                trust_remote_code=True,
-                tensor_parallel_size=1,
-                gpu_memory_utilization=0.85,
-                max_model_len=max_model_len,
-                enforce_eager=False,
-                seed=0,
+            self.model = (
+                AutoModelForVision2Seq.from_pretrained(
+                    model_id,
+                    trust_remote_code=True,
+                    torch_dtype=dtype,
+                    low_cpu_mem_usage=True,
+                )
+                .to(self.device)
+                .eval()
             )
         except Exception as exc:
-            LOGGER.exception("Failed to initialize vLLM engine for %s", model_id)
-            raise RuntimeError(
-                f"Failed to initialize vLLM engine for '{model_id}'."
-            ) from exc
-        LOGGER.info("Qwen3-VL vLLM engine is ready.")
+            LOGGER.exception("Failed to load Qwen3-VL model for %s", model_id)
+            raise RuntimeError(f"Failed to initialize Qwen3-VL model '{model_id}'.") from exc
+        LOGGER.info("Qwen3-VL Transformers model is ready on %s.", self.device)
 
     def build_messages(
         self,
@@ -60,7 +79,7 @@ class QwenVL:
         prompt: str,
         video_source: Optional[str] = None,
         *,
-        max_pixels: int = 1280 * 28 * 28,
+        max_pixels: int = 768 * 28 * 28,
     ) -> list[dict[str, Any]]:
         """Build Qwen3 chat-format messages from image sources and prompt."""
         content: list[dict[str, str]] = []
@@ -78,10 +97,17 @@ class QwenVL:
         )
         return messages
 
-    def prepare_vllm_input(self, messages: Sequence[dict[str, Any]]) -> dict[str, Any]:
-        """Convert chat messages into vLLM multimodal input payload."""
+    def vl_eval(
+        self,
+        image_sources: Sequence[str],
+        prompt: str,
+        video_source: Optional[str] = None,
+    ) -> str:
+        """Run one Qwen3-VL multimodal evaluation and return response text."""
+        messages = self.build_messages(image_sources, prompt, video_source=video_source)
+
         try:
-            prompt = self.processor.apply_chat_template(
+            prompt_text = self.processor.apply_chat_template(
                 list(messages),
                 tokenize=False,
                 add_generation_prompt=True,
@@ -93,46 +119,27 @@ class QwenVL:
                 return_video_metadata=True,
             )
         except Exception as exc:
-            LOGGER.exception("Qwen3-vLLM input preparation failed")
-            raise RuntimeError("Failed to prepare Qwen3-vLLM input payload.") from exc
+            LOGGER.exception("Qwen3-VL input preparation failed")
+            raise RuntimeError("Failed to prepare Qwen3-VL input payload.") from exc
 
-        mm_data: dict[str, Any] = {}
-        if image_inputs is not None:
-            mm_data["image"] = image_inputs
-        if video_inputs is not None:
-            mm_data["video"] = video_inputs
-        return {
-            "prompt": prompt,
-            "multi_modal_data": mm_data,
-            "mm_processor_kwargs": video_kwargs,
-        }
+        proc_kwargs: dict[str, Any] = dict(video_kwargs) if isinstance(video_kwargs, dict) else {}
+        inputs = self.processor(
+            text=[prompt_text],
+            images=image_inputs,
+            videos=video_inputs,
+            padding=True,
+            return_tensors="pt",
+            **proc_kwargs,
+        ).to(self.device)
 
-    def vl_eval(
-        self,
-        image_sources: Sequence[str],
-        prompt: str,
-        video_source: Optional[str] = None,
-    ) -> str:
-        """Run one Qwen3-vLLM multimodal evaluation and return response text."""
-        messages = self.build_messages(image_sources, prompt, video_source=video_source)
-        llm_input = self.prepare_vllm_input(messages)
-
-        LOGGER.info("Starting Qwen3-vLLM inference.")
+        LOGGER.info("Starting Qwen3-VL inference on %s.", self.device)
         try:
-            outputs = self.llm.generate(
-                [llm_input],
-                sampling_params=SamplingParams(
-                    temperature=0.0,
-                    max_tokens=1024,
-                    top_k=-1,
-                ),
-            )
+            with torch.inference_mode():
+                out = self.model.generate(**inputs, max_new_tokens=256, do_sample=False)
         except Exception as exc:
-            LOGGER.exception("Qwen3-vLLM inference failed")
-            raise RuntimeError("Qwen3-vLLM inference failed.") from exc
+            LOGGER.exception("Qwen3-VL inference failed")
+            raise RuntimeError("Qwen3-VL inference failed.") from exc
 
-        if not outputs or not outputs[0].outputs:
-            raise RuntimeError("Qwen3-vLLM returned no output.")
-        text = outputs[0].outputs[0].text
-        LOGGER.info("Qwen3-vLLM inference completed.")
+        text = self.processor.batch_decode(out, skip_special_tokens=True)[0]
+        LOGGER.info("Qwen3-VL inference completed.")
         return str(text)

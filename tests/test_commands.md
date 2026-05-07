@@ -30,6 +30,7 @@ python scripts/run_character_sheet_creation.py --image $GIRL_IMG --character-nam
 python scripts/run_character_sheet_creation.py --image $VET_IMG --character-name "Eli" --full-body-check
 python scripts/run_character_sheet_creation.py --image $GIRL_IMG --character-name "Beth" --full-body-check
 
+
 # 2) Run ref-guided generation
 # With backdrop/scene reference:
 python scripts/run_ref_guided_gen.py --prompt "@Eli sitting on the couch, staring at @Beth's phone" --backdrop-img $ROOM_IMG --output-dir output/ref-guided-gen

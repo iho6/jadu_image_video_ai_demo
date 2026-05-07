@@ -3,7 +3,7 @@
 # Root ComfyUI environment setup and server start (inference services use 127.0.0.1:COMFY_PORT).
 #
 # Optional environment:
-#   HF_TOKEN            — Hugging Face token; used by utils/download_models.py for gated models.
+#   HF_TOKEN            — Hugging Face token; used by utils/load_comfy_models.py and utils/download_hf_weights.py for gated models.
 #   GITHUB_PAT          — If git LFS uses an HTTPS remote, ensure Git can authenticate (PAT / helper),
 #                         same as a normal git lfs pull from this repo.
 #   Setup profile        — This script installs only ComfyUI + Comfy-backed services + tests from
@@ -11,6 +11,7 @@
 #   COMFY_PORT          — ComfyUI listen port (default 8188). Matches services/logic.py and inference CLIs.
 #   COMFY_CACHE_ENABLE  — If set to 1, true, yes, y, or on, Comfy node cache is enabled; otherwise
 #                         this script passes --cache-none (same as _launch_main_background in logic.py).
+#   SKIP_HF_WEIGHTS     — If set to 1/true/yes/y/on, skip downloading Hugging Face weights (Qwen3-VL).
 #
 # Apt: if apt-get update fails because a deadsnakes Launchpad PPA is unreachable, this script may
 # rename matching *.list files under /etc/apt/sources.list.d to *.list.disabled and retry once.
@@ -247,8 +248,19 @@ meta_log "Python requirements installation completed"
 meta_log "Running custom-node installer (placeholder-safe)..."
 bash "${REPO_ROOT}/utils/install_custom_nodes.sh" "${COMFY_BASE_DIR}/custom_nodes"
 
-meta_log "Downloading models (utils/download_models.py --img-edit --edit-angle)..."
-"${VENV_PYTHON}" utils/download_models.py --img-edit --edit-angle
+_skip_hf_lower="$(echo "${SKIP_HF_WEIGHTS:-}" | tr '[:upper:]' '[:lower:]')"
+case "${_skip_hf_lower}" in
+  1 | true | yes | y | on)
+    meta_log "Skipping HF weights download (SKIP_HF_WEIGHTS=${SKIP_HF_WEIGHTS})."
+    ;;
+  *)
+    meta_log "Downloading HF weights (utils/download_hf_weights.py --repo-id Qwen/Qwen3-VL-4B-Instruct --local-dir models/hf)..."
+    "${VENV_PYTHON}" utils/download_hf_weights.py --repo-id "Qwen/Qwen3-VL-4B-Instruct" --local-dir "models/hf"
+    ;;
+esac
+
+meta_log "Downloading models (utils/load_comfy_models.py --img-edit --edit-angle)..."
+"${VENV_PYTHON}" utils/load_comfy_models.py --img-edit --edit-angle
 
 ensure_tmux
 

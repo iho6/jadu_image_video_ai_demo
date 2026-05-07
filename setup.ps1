@@ -4,10 +4,11 @@
   Windows parity for repo-root setup.sh: venv, deps, LFS, models, custom nodes, start ComfyUI.
 
 Environment (optional):
-  HF_TOKEN            — Hugging Face token for utils/download_models.py
+  HF_TOKEN            — Hugging Face token for utils/load_comfy_models.py and utils/download_hf_weights.py
   GITHUB_PAT          — For git LFS over HTTPS if your remote needs auth
   COMFY_PORT          — Listen port (default 8188)
   COMFY_CACHE_ENABLE  — Set to 1/true/yes to enable cache; otherwise --cache-none is passed
+  SKIP_HF_WEIGHTS     — Set to 1/true/yes to skip downloading HF weights (Qwen3-VL)
 #>
 
 $ErrorActionPreference = "Stop"
@@ -90,8 +91,24 @@ Write-SetupLog "Installing requirements.txt..."
 Write-SetupLog "Running custom-node installer (placeholder-safe)..."
 Invoke-CustomNodeInstaller
 
-Write-SetupLog "Downloading models (utils/download_models.py --img-edit --edit-angle)..."
-& $venvPython (Join-Path $RepoRoot "utils\download_models.py") --img-edit --edit-angle
+function Test-SkipHfWeights {
+    $v = $env:SKIP_HF_WEIGHTS
+    if ([string]::IsNullOrWhiteSpace($v)) { return $false }
+    switch -Regex ($v.Trim().ToLowerInvariant()) {
+        '^(1|true|yes|y|on)$' { return $true }
+        default { return $false }
+    }
+}
+
+if (Test-SkipHfWeights) {
+    Write-SetupLog ("Skipping HF weights download (SKIP_HF_WEIGHTS={0})" -f $env:SKIP_HF_WEIGHTS)
+} else {
+    Write-SetupLog "Downloading HF weights (utils/download_hf_weights.py --repo-id Qwen/Qwen3-VL-4B-Instruct --local-dir models/hf)..."
+    & $venvPython (Join-Path $RepoRoot "utils\\download_hf_weights.py") --repo-id "Qwen/Qwen3-VL-4B-Instruct" --local-dir "models/hf"
+}
+
+Write-SetupLog "Downloading models (utils/load_comfy_models.py --img-edit --edit-angle)..."
+& $venvPython (Join-Path $RepoRoot "utils\load_comfy_models.py") --img-edit --edit-angle
 
 $port = 8188
 if (-not [string]::IsNullOrWhiteSpace($env:COMFY_PORT)) {

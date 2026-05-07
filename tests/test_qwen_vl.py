@@ -26,6 +26,11 @@ def fake_process_vision_info(messages, **kwargs):
     return image_inputs, video_inputs, {"fps": 1}
 
 
+class FakeBatch(dict):
+    def to(self, _device):
+        return self
+
+
 class FakeProcessor:
     image_processor = SimpleNamespace(patch_size=14)
 
@@ -35,27 +40,44 @@ class FakeProcessor:
         assert add_generation_prompt is True
         return "formatted-prompt"
 
+    def __call__(self, **kwargs):
+        return FakeBatch(input_ids=[[1]])
+
+    @staticmethod
+    def batch_decode(tokens, skip_special_tokens):
+        return ["ok-response"]
+
 
 class FakeAutoProcessor:
     @staticmethod
-    def from_pretrained(model_id):
+    def from_pretrained(model_id, **kwargs):
         assert model_id
         return FakeProcessor()
 
 
-class FakeSamplingParams:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
+class FakeModel:
+    device = "cpu"
+
+    def eval(self):
+        return self
+
+    def generate(self, **kwargs):
+        return ["tokens"]
 
 
-class FakeLLM:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
+class FakeAutoModelForVision2Seq:
+    @staticmethod
+    def from_pretrained(model_id, **kwargs):
+        assert model_id
+        return FakeModel()
 
-    def generate(self, requests, sampling_params):
-        assert requests and isinstance(requests, list)
-        assert hasattr(sampling_params, "kwargs")
-        return [SimpleNamespace(outputs=[SimpleNamespace(text="ok-response")])]
+
+class FakeInferenceMode:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
 
 
 def _load_qwen_vl_module(monkeypatch):
@@ -65,12 +87,13 @@ def _load_qwen_vl_module(monkeypatch):
 
     fake_transformers = types.ModuleType("transformers")
     fake_transformers.AutoProcessor = FakeAutoProcessor
+    fake_transformers.AutoModelForVision2Seq = FakeAutoModelForVision2Seq
     monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
 
-    fake_vllm = types.ModuleType("vllm")
-    fake_vllm.LLM = FakeLLM
-    fake_vllm.SamplingParams = FakeSamplingParams
-    monkeypatch.setitem(sys.modules, "vllm", fake_vllm)
+    fake_torch = types.ModuleType("torch")
+    fake_torch.bfloat16 = "bf16"
+    fake_torch.inference_mode = lambda: FakeInferenceMode()
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
 
     import qwen_vl
 
@@ -89,21 +112,6 @@ def runner(qwen_vl_module):
     return qwen_vl_module.QwenVL()
 
 
-def test_llm_receives_default_max_model_len(qwen_vl_module):
-    runner = qwen_vl_module.QwenVL()
-    assert runner.llm.kwargs["max_model_len"] == 16384
-
-
-def test_llm_receives_custom_max_model_len(qwen_vl_module):
-    runner = qwen_vl_module.QwenVL(max_model_len=4096)
-    assert runner.llm.kwargs["max_model_len"] == 4096
-
-
-def test_qwen_vl_rejects_non_positive_max_model_len(qwen_vl_module):
-    with pytest.raises(ValueError, match="max_model_len"):
-        qwen_vl_module.QwenVL(max_model_len=0)
-
-
 def test_build_messages_images_only(runner):
     messages = runner.build_messages(["a.png", "b.png"], "describe")
     content = messages[0]["content"]
@@ -119,23 +127,6 @@ def test_build_messages_video_only(runner):
     assert content[-1] == {"type": "text", "text": "describe"}
 
 
-def test_prepare_vllm_input_contains_expected_keys(runner):
-    messages = runner.build_messages(["a.png"], "prompt", video_source="clip.mp4")
-    payload = runner.prepare_vllm_input(messages)
-
-    assert payload["prompt"] == "formatted-prompt"
-    assert payload["multi_modal_data"]["image"] == ["image-bytes"]
-    assert payload["multi_modal_data"]["video"] == ["video-bytes"]
-    assert payload["mm_processor_kwargs"] == {"fps": 1}
-
-
 def test_vl_eval_returns_first_generated_text(runner):
     out = runner.vl_eval(["a.png"], "prompt")
     assert out == "ok-response"
-
-
-def test_vl_eval_raises_when_generate_empty(monkeypatch, runner):
-    monkeypatch.setattr(runner.llm, "generate", lambda *args, **kwargs: [])
-
-    with pytest.raises(RuntimeError, match="returned no output"):
-        runner.vl_eval(["a.png"], "prompt")

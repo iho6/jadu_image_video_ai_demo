@@ -8,6 +8,11 @@ Run the repo setup script (creates `.venv`, installs requirements, downloads mod
 ./setup.sh
 ```
 
+### Model downloads
+
+- **ComfyUI workflow models**: downloaded by the setup script via `utils/load_comfy_models.py`.
+- **Qwen Hugging Face weights** (downloading Qwen VL weights without vLLM which needs 580+ Nvidia driver): see `docs/download_hf_weights.md`.
+
 ## Service
 
 Server call to ComfyUI via JSON workflows.

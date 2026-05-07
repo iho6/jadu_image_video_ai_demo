@@ -17,6 +17,24 @@ class ComfyPromptError(RuntimeError):
     """Raised when ComfyUI rejects or fails a workflow submission."""
 
 
+def probe_comfy_or_raise(comfy_url: str, *, timeout_s: float = 2.0) -> None:
+    """Fail fast if ComfyUI isn't reachable.
+
+    Uses a simple GET to `/system_stats` which is cheap and indicates the server
+    is up before running heavier upload/queue actions.
+    """
+    base = str(comfy_url).rstrip("/")
+    url = f"{base}/system_stats"
+    try:
+        r = requests.get(url, timeout=timeout_s)
+        r.raise_for_status()
+    except Exception as exc:
+        raise RuntimeError(
+            f"ComfyUI not reachable at {base!r} (probe: GET /system_stats). "
+            "Start ComfyUI (or set --comfy-url correctly) and retry."
+        ) from exc
+
+
 def _detail_is_debug() -> bool:
     return os.environ.get("COMFY_LOG_DETAIL", "").strip().lower() in {"1", "true", "yes", "debug"}
 

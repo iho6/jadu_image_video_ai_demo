@@ -20,8 +20,8 @@ for _p in (str(_ROOT), str(_ROOT / "code")):
 
 from character_sheet_creation import CharacterSheetCreation  # type: ignore[import-not-found]  # noqa: E402
 from utils.cli_exceptions import print_cli_error  # noqa: E402
-from utils.comfyui_utils import ComfyPromptError  # noqa: E402
-from utils.generic_utils import safe_filename_component  # noqa: E402
+from utils.comfyui_utils import ComfyPromptError, probe_comfy_or_raise  # noqa: E402
+from utils.generic_utils import eprint, safe_filename_component, section  # noqa: E402
 
 
 class RunCharacterSheetCreation:
@@ -129,16 +129,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     try:
-        runner = RunCharacterSheetCreation(comfy_url=args.comfy_url)
-        safe_name = safe_filename_component(str(args.character_name))
-        desc_json_path = Path(args.output_dir) / f"{safe_name}_character_description.json"
+        with section("args"):
+            eprint(f"image={args.image!r}")
+            eprint(f"character_name={args.character_name!r}")
+            eprint(f"output_dir={str(args.output_dir)!r}")
+            eprint(f"comfy_url={args.comfy_url!r}")
+            eprint(f"full_body_check={bool(args.full_body_check)!r}")
+            eprint(f"character_description={bool(args.character_description)!r}")
 
-        path = runner.run_character_sheet_creation(
-            image=args.image,
-            character_name=args.character_name,
-            output_dir=Path(args.output_dir),
-            full_body_check=bool(args.full_body_check),
-        )
+        with section("check: comfy reachable"):
+            probe_comfy_or_raise(str(args.comfy_url))
+
+        with section("init: character sheet creator"):
+            runner = RunCharacterSheetCreation(comfy_url=args.comfy_url)
+            safe_name = safe_filename_component(str(args.character_name))
+            desc_json_path = Path(args.output_dir) / f"{safe_name}_character_description.json"
+
+        with section("step: character sheet creation"):
+            path = runner.run_character_sheet_creation(
+                image=args.image,
+                character_name=args.character_name,
+                output_dir=Path(args.output_dir),
+                full_body_check=bool(args.full_body_check),
+            )
 
         expected = runner.expected_sheet_path(
             output_dir=Path(args.output_dir),
@@ -149,16 +162,17 @@ def main() -> None:
             # `path` is the generated corrected full-body image path.
             fb = Path(path)
             if args.character_description:
-                desc = runner.run_describe_character(image=str(fb))
-                payload = {
-                    "character_name": str(args.character_name),
-                    "image_described": str(fb),
-                    "description": desc,
-                }
-                desc_json_path.write_text(
-                    json.dumps(payload, ensure_ascii=False, indent=2),
-                    encoding="utf-8",
-                )
+                with section("step: character description (corrected full-body image)"):
+                    desc = runner.run_describe_character(image=str(fb))
+                    payload = {
+                        "character_name": str(args.character_name),
+                        "image_described": str(fb),
+                        "description": desc,
+                    }
+                    desc_json_path.write_text(
+                        json.dumps(payload, ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
             print(fb.resolve())
             print(
                 "character sheet creation requires fullbody input of a character.",
@@ -167,19 +181,21 @@ def main() -> None:
             raise SystemExit(1)
 
         if args.character_description:
-            desc = runner.run_describe_character(image=str(args.image))
-            payload = {
-                "character_name": str(args.character_name),
-                "image_described": str(args.image),
-                "description": desc,
-                "character_sheet_path": str(path),
-            }
-            desc_json_path.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            with section("step: character description (input image)"):
+                desc = runner.run_describe_character(image=str(args.image))
+                payload = {
+                    "character_name": str(args.character_name),
+                    "image_described": str(args.image),
+                    "description": desc,
+                    "character_sheet_path": str(path),
+                }
+                desc_json_path.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
         print(path.resolve())
     except (ComfyPromptError, OSError, TimeoutError, ValueError, RuntimeError) as e:
+        eprint("\n=== FAILED ===")
         print_cli_error(e)
         raise SystemExit(1) from e
 

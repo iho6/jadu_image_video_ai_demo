@@ -18,5 +18,12 @@ filelock
 av>=14.2.0
 simpleeval>=1.0.0
 blake3
+
+# Added back to unblock comfy_extras imports (nodes_post_processing/nodes_upscale_model/nodes_glsl)
+kornia>=0.7.1
+spandrel
+PyOpenGL
+glfw
+
 pydantic~=2.0
 pydantic-settings~=2.0

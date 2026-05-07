@@ -6,7 +6,10 @@ from both runtime code (`code/`) and CLI scripts (`scripts/`).
 
 from __future__ import annotations
 
+import contextlib
 import re
+import sys
+import time
 
 _SAFE_FILENAME_EMPTY = "safe_filename error: input text must be non-empty."
 
@@ -29,4 +32,28 @@ def safe_filename_component(text: str) -> str:
     s = re.sub(r"\s+", "_", s)
     s = re.sub(r"[^A-Za-z0-9._-]", "", s)
     return s or "character"
+
+
+def eprint(msg: str) -> None:
+    """Print to stderr (flush) for CLI-style logs."""
+    print(str(msg), file=sys.stderr, flush=True)
+
+
+@contextlib.contextmanager
+def section(title: str):
+    """Emit a titled `=== ... ===` section with timing.
+
+    Intended for CLI entrypoints to produce readable logs with clear boundaries.
+    """
+    start = time.monotonic()
+    eprint(f"\n=== {title} ===")
+    try:
+        yield
+    except Exception as exc:
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+        eprint(f"=== fail: {title} elapsed_ms={elapsed_ms} error={type(exc).__name__}: {exc} ===")
+        raise
+    else:
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+        eprint(f"=== ok: {title} elapsed_ms={elapsed_ms} ===")
 

@@ -16,8 +16,8 @@ from PIL import Image
 from qwen_vl import QwenVL
 from services.edit_angle_service.edit_angle import run_edit_angle
 from services.img_edit_service.img_edit import run_img_edit
-from utils.generic_utils import safe_filename_component
-from utils.image_utils import load_image
+from utils.generic_utils import safe_filename_component, section
+from utils.image_utils import load_image, save_source_image_as_png
 from utils.vlm_utils import character_fullbody_check
 from utils.prompt_utils import (
     ANGLE_PROMPT_BACK_180,
@@ -62,15 +62,18 @@ class CharacterSheetCreation:
         out.mkdir(parents=True, exist_ok=True)
 
         if full_body_check:
-            is_fullbody = character_fullbody_check(
-                runner=self._vlm_runner,
-                image_source=image_source,
-                prompt=FULLBODY_CHECK_PROMPT,
-            )
+            with section("step: full-body-check (QwenVL)"):
+                is_fullbody = character_fullbody_check(
+                    runner=self._vlm_runner,
+                    image_source=image_source,
+                    prompt=FULLBODY_CHECK_PROMPT,
+                )
             if not is_fullbody:
-                return self.fullbody_image_creation(image_source, out)
+                with section("step: full-body-correction (Comfy img_edit)"):
+                    return self.fullbody_image_creation(image_source, out)
 
-        pre = self._preprocess_qwen_9_16(image_source, out)
+        # Preserve original input dimensions to avoid padding artifacts.
+        pre = save_source_image_as_png(image_source, out, prefix="input")
 
         right = self._run_angle_once(pre, ANGLE_PROMPT_RIGHT_90, out)
         left = self._run_angle_once(pre, ANGLE_PROMPT_LEFT_90, out)
@@ -84,7 +87,7 @@ class CharacterSheetCreation:
             Image.open(back).convert("RGB"),
             Image.open(closeup).convert("RGB"),
         ]
-        stitched = self._stitch_3x2_with_blank(images)
+        stitched = self._stitch_square_plus_closeup(images)
 
         safe_name = safe_filename_component(character_name)
         dest = out / f"{safe_name}_character_sheet.png"
@@ -134,27 +137,42 @@ class CharacterSheetCreation:
         canvas.save(out_path)
         return out_path
 
-    def _stitch_3x2_with_blank(
+    def _stitch_square_plus_closeup(
         self,
         images: list[Image.Image],
         bg_color: tuple[int, int, int] = (0, 0, 0),
     ) -> Image.Image:
         if len(images) != 5:
             raise ValueError("Expected exactly 5 images: [original, right, left, back, closeup].")
-        tile_w, tile_h = images[0].size
+        front, right, left, back, closeup = images
+        tile_w, tile_h = front.size
         if tile_w <= 0 or tile_h <= 0:
             raise ValueError(f"Invalid tile size: {(tile_w, tile_h)}")
 
         resample = getattr(Image, "Resampling", Image).LANCZOS
-        tiles = [im.resize((tile_w, tile_h), resample=resample) for im in images]
+        # 2x2 square (non-closeup) - order requested:
+        # top-left front, top-right left side, bottom-left right side, bottom-right back
+        front_t = front.resize((tile_w, tile_h), resample=resample)
+        left_t = left.resize((tile_w, tile_h), resample=resample)
+        right_t = right.resize((tile_w, tile_h), resample=resample)
+        back_t = back.resize((tile_w, tile_h), resample=resample)
 
-        canvas = Image.new("RGB", (tile_w * 3, tile_h * 2), bg_color)
-        # Row 1: original, right, left
-        canvas.paste(tiles[0], (0, 0))
-        canvas.paste(tiles[1], (tile_w, 0))
-        canvas.paste(tiles[2], (tile_w * 2, 0))
-        # Row 2: back, closeup, blank
-        canvas.paste(tiles[3], (0, tile_h))
-        canvas.paste(tiles[4], (tile_w, tile_h))
+        square_w = tile_w * 2
+        square_h = tile_h * 2
+
+        # Closeup scaled to match square height.
+        cw, ch = closeup.size
+        if cw <= 0 or ch <= 0:
+            raise ValueError(f"Invalid closeup size: {(cw, ch)}")
+        scale = square_h / ch
+        closeup_w = max(1, int(round(cw * scale)))
+        closeup_t = closeup.resize((closeup_w, square_h), resample=resample)
+
+        canvas = Image.new("RGB", (square_w + closeup_w, square_h), bg_color)
+        canvas.paste(front_t, (0, 0))
+        canvas.paste(left_t, (tile_w, 0))
+        canvas.paste(right_t, (0, tile_h))
+        canvas.paste(back_t, (tile_w, tile_h))
+        canvas.paste(closeup_t, (square_w, 0))
         return canvas
 

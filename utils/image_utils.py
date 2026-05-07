@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import uuid
 from pathlib import Path
 from typing import Sequence, Tuple, Union
 
@@ -17,6 +18,29 @@ def pil_to_png_bytes(im: Image.Image) -> bytes:
     buf = io.BytesIO()
     im.save(buf, format="PNG")
     return buf.getvalue()
+
+def check_valid_image_dimensions(im: Image.Image) -> tuple[int, int]:
+    """Return (width, height) or raise if invalid."""
+    w, h = im.size
+    if w <= 0 or h <= 0:
+        raise ValueError(f"Invalid image size: {(w, h)}")
+    return w, h
+
+
+def save_source_image_as_png(
+    source: Source,
+    dest_dir: Path,
+    *,
+    prefix: str = "input",
+) -> Path:
+    """Write the image to `dest_dir` as a PNG without resizing/padding."""
+    dest = Path(dest_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+    im = load_image(source).convert("RGB")
+    check_valid_image_dimensions(im)
+    out_path = dest / f"{prefix}_{uuid.uuid4().hex}.png"
+    im.save(out_path)
+    return out_path
 
 
 def expand_sources_to_three_rgb_images(
