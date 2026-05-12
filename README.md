@@ -488,7 +488,7 @@ python services/img_edit_service/img_edit.py --images $VET_IMG $ROOM_IMG --promp
 
 <img src="output/img-edit/ComfyUI_00002_.png" width="900" />
 
-## Eval
+# Eval
 
 `scripts/run_gen_eval.py` — VLM evaluation of a generated output against reference inputs. Flags: `--ref-coherence`, `--prompt-adherence`, `--non-prompt-artifact`, `--question`, `--all` (default), `--debug`.
 
@@ -1586,7 +1586,7 @@ Reasoning: The user prompt was "Put vet in room." The output image (image 3) cor
 
 ---
 
-## Chat
+# Chat
 
 `scripts/run_qwen_chat.py` — multi-turn conversational assistant for directing the generative AI pipeline. Accepts image input via bracket syntax (`[path_or_url] message`), maintains turn history, and exports session transcripts. Slash commands: `/quit`, `/reset`, `/export`, `/help`.
 
