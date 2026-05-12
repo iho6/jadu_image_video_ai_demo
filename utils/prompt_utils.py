@@ -423,71 +423,62 @@ def build_list_unprompted_prompt(
     )
 
 
-def build_unprompted_artifact_list_eval_prompt(
+def build_unprompted_artifact_eval_prompt(
     user_prompt: str,
     ref_idx_range: tuple[int, int],
     output_idx: int,
     output_type: str,
-    unprompted_items: list[str],
+    item: str,
 ) -> str:
-    """Build the VLM prompt that evaluates each unprompted item as desired or undesired.
+    """Build the VLM prompt that evaluates a single unprompted item as desired or undesired.
 
-    Dynamic fields: task description, ref index range, output index, user prompt,
-    and the pre-generated list of unprompted items from list_unprompted().
-    Response is one structured block per item — Artifact / Response / Reasoning.
+    Dynamic fields: task description, ref index range, output index, user prompt, single item.
+    Response is one Artifact / Response / Reasoning block.
     """
     task_desc = _GEN_TASK_DESC.get(output_type, _GEN_TASK_DESC["image"])
     media_label = "video" if output_type == "video" else "image"
     ref_start, ref_end = ref_idx_range
-    items_block = "\n".join(f"- {item}" for item in unprompted_items)
     return (
         f"You are evaluating an {task_desc} with input references "
         f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt}, "
         f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
         f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
-        "The following is a list of elements observed in the output that were not explicitly "
-        "mentioned in the user prompt:\n"
-        f"{items_block}\n\n"
-        "For each item, evaluate whether it is a desired artifact (True) or an undesired "
-        "artifact (False). A desired artifact (True) is a natural byproduct of the generation, "
-        "an expected addition, or an acceptable creative decision given the prompt and context. "
+        "The following element was observed in the output but was not explicitly mentioned in "
+        f"the user prompt:\n{item}\n\n"
+        "Evaluate whether this element is a desired artifact (True) or an undesired artifact "
+        "(False). A desired artifact (True) is a natural byproduct of the generation, an "
+        "expected addition, or an acceptable creative decision given the prompt and context. "
         "An undesired artifact (False) is a real error, anomaly, or unintended addition that "
         "detracts from the output quality.\n\n"
-        "Respond with one block per item in exactly this format. "
-        "Refer to the examples below for format:\n\n"
+        "Respond with exactly one block in this format. "
+        "Refer to the examples below:\n\n"
         "User Prompt: The woman in the car talking to herself\n"
-        "Unprompted items:\n"
-        "- Car gliding down the street\n"
-        "- Faint shadow beneath the car\n\n"
-        "Artifact: Car gliding down the street\n"
-        "Response: False\n"
-        "Reasoning: The prompt focuses solely on the woman talking; no vehicle movement was "
-        "requested. The car moving is an unintended addition to the scene.\n\n"
+        "Item: Faint shadow beneath the car\n"
         "Artifact: Faint shadow beneath the car\n"
         "Response: True\n"
         "Reasoning: A ground shadow under a vehicle is a natural lighting byproduct in realistic "
         "scenes. It does not conflict with the prompt or references.\n\n"
+        "User Prompt: The woman in the car talking to herself\n"
+        "Item: Car gliding down the street\n"
+        "Artifact: Car gliding down the street\n"
+        "Response: False\n"
+        "Reasoning: The prompt focuses solely on the woman talking; no vehicle movement was "
+        "requested. The car moving is an unintended addition to the scene.\n\n"
         "User Prompt: Turn the person in the reference image into a cartoon character\n"
-        "Unprompted items:\n"
-        "- Background changed from white to blue gradient\n"
-        "- Character shown half-body with arms raised; reference showed full body with hands in pockets\n"
-        "- Slight warping around the left hand\n\n"
+        "Item: Background changed from white to blue gradient\n"
         "Artifact: Background changed from white to blue gradient\n"
         "Response: False\n"
         "Reasoning: The prompt requested a style conversion only. The background color and "
         "gradient were not asked for and represent an unintended modification.\n\n"
+        "User Prompt: Turn the person in the reference image into a cartoon character\n"
+        "Item: Character shown half-body with arms raised; reference showed full body with hands in pockets\n"
         "Artifact: Character shown half-body with arms raised; reference showed full body with hands in pockets\n"
         "Response: False\n"
         "Reasoning: The reference shows a full-body standing pose with hands in pockets. The "
         "output drastically changes both the framing and the pose without any instruction to do "
         "so. This is not a natural byproduct of a style conversion.\n\n"
-        "Artifact: Slight warping around the left hand\n"
-        "Response: False\n"
-        "Reasoning: The hand warping is a generation error not present in the reference and not "
-        "implied by the prompt. It is an unintended deformity that degrades output quality.\n\n"
         "User Prompt: Put the doctor on the sofa in the room shown in image 2\n"
-        "Unprompted items:\n"
-        "- Doctor's arms resting at sides rather than raised as in reference\n\n"
+        "Item: Doctor's arms resting at sides rather than raised as in reference\n"
         "Artifact: Doctor's arms resting at sides rather than raised as in reference\n"
         "Response: True\n"
         "Reasoning: The reference shows the doctor in a T-pose with arms raised. When placed "

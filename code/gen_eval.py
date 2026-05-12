@@ -11,7 +11,7 @@ from utils.prompt_utils import (
     build_ref_consistency_eval_prompt,
     build_prompt_adherence_eval_prompt,
     build_list_unprompted_prompt,
-    build_unprompted_artifact_list_eval_prompt,
+    build_unprompted_artifact_eval_prompt,
     build_format_unprompted_question_prompt,
 )
 from utils.vlm_utils import (
@@ -19,7 +19,7 @@ from utils.vlm_utils import (
     parse_yes_no_eval_output,
     parse_out_of_5_eval_output,
     parse_bullet_list,
-    parse_artifact_eval_list,
+    parse_artifact_eval,
     extract_assistant_text,
 )
 
@@ -171,22 +171,26 @@ class UnpromptedArtifactCheckEval:
     ) -> list[dict[str, Any]]:
         """Evaluate each unprompted item as desired (True) or undesired (False).
 
-        Returns list of {"artifact": str, "desired": bool | None, "reasoning": str}.
+        One VLM call per item. Returns list of
+        {"artifact": str, "desired": bool | None, "reasoning": str}.
         """
         output_type = detect_output_type(output_path)
         n = len(ref_paths)
-        prompt_text = build_unprompted_artifact_list_eval_prompt(
-            user_prompt=user_prompt,
-            ref_idx_range=(1, n),
-            output_idx=n + 1,
-            output_type=output_type,
-            unprompted_items=unprompted_items,
-        )
-        if output_type == "video":
-            response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
-        else:
-            response = runner.vl_eval([*ref_paths, output_path], prompt_text)
-        return parse_artifact_eval_list(response)
+        results = []
+        for item in unprompted_items:
+            prompt_text = build_unprompted_artifact_eval_prompt(
+                user_prompt=user_prompt,
+                ref_idx_range=(1, n),
+                output_idx=n + 1,
+                output_type=output_type,
+                item=item,
+            )
+            if output_type == "video":
+                response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
+            else:
+                response = runner.vl_eval([*ref_paths, output_path], prompt_text)
+            results.append(parse_artifact_eval(response))
+        return results
 
     def format_unprompted_as_questions(
         self,

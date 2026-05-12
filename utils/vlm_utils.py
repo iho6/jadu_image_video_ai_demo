@@ -140,31 +140,28 @@ def parse_bullet_list(text: str) -> list[str]:
     return items
 
 
-def parse_artifact_eval_list(text: str) -> list[dict[str, Any]]:
-    """Parse artifact evaluation blocks from VLM response.
+def parse_artifact_eval(text: str) -> dict[str, Any]:
+    """Parse a single artifact evaluation block from a VLM response.
 
-    Expects repeating blocks of:
+    Expects one block of:
         Artifact: <description>
         Response: True/False
         Reasoning: <reasoning>
 
-    Returns list of {"artifact": str, "desired": bool | None, "reasoning": str}.
+    Returns {"artifact": str, "desired": bool | None, "reasoning": str}.
     """
-    results = []
-    current: dict[str, Any] = {}
+    artifact = ""
+    desired: bool | None = None
+    reasoning = ""
     for line in text.splitlines():
         s = line.strip()
         lower = s.lower()
         if lower.startswith("artifact:"):
-            if current:
-                results.append(current)
-            current = {"artifact": s.split(":", 1)[1].strip(), "desired": None, "reasoning": ""}
-        elif lower.startswith("response:") and current:
+            artifact = s.split(":", 1)[1].strip()
+        elif lower.startswith("response:"):
             val = s.split(":", 1)[1].strip().lower()
-            current["desired"] = val.startswith("true")
-        elif lower.startswith("reasoning:") and current:
-            current["reasoning"] = s.split(":", 1)[1].strip()
-    if current:
-        results.append(current)
-    return results
+            desired = val.startswith("true")
+        elif lower.startswith("reasoning:"):
+            reasoning = s.split(":", 1)[1].strip()
+    return {"artifact": artifact, "desired": desired, "reasoning": reasoning}
 
