@@ -169,6 +169,17 @@ CHAT_SYSTEM_PROMPT = (
 
 
 # =============================================================================
+# Media description (code/describe_media.py)
+# =============================================================================
+
+DESCRIBE_MEDIA_PROMPT = (
+    "Describe this input in a concise 2 paragraph description with as much detail as possible, including subject, "
+    "style, colors, lighting, composition, any visible people or animals, "
+    "actions, camera behavior, and notable fine details."
+)
+
+
+# =============================================================================
 # Generation evaluation (code/gen_eval.py)
 # =============================================================================
 
@@ -299,4 +310,55 @@ def build_ref_consistency_eval_prompt(
         "cartoon leg is longer in seating position than in the reference. Otherwise, the doctor's "
         "face and the girls' whole appearance are consistent, and the stylistic differentiation "
         "between backdrop and character is kept the same."
+    )
+
+
+def build_prompt_adherence_eval_prompt(
+    user_prompt: str,
+    ref_idx_range: tuple[int, int],
+    output_idx: int,
+    output_type: str,
+) -> str:
+    """Build the VLM prompt that scores how well the output fulfills the user prompt (0–5).
+
+    Dynamic fields: task description, ref index range, output index, user prompt.
+    The scoring rubric and few-shot examples are static.
+    Returns 'score' (int 0-5) and 'reasoning' (str) when parsed.
+    """
+    task_desc = _GEN_TASK_DESC.get(output_type, _GEN_TASK_DESC["image"])
+    ref_start, ref_end = ref_idx_range
+    return (
+        f"You are evaluating an {task_desc} with input references "
+        f"(idx {ref_start} to {ref_end}) and the following user prompt: {user_prompt}. "
+        f"(idx {output_idx}) is the output result from the generation task.\n\n"
+        "Evaluate how well the output fulfills what the user prompt asked for. "
+        "Consider every specific instruction, subject, action, placement, style change, "
+        "or constraint mentioned in the prompt, and assess whether the output delivers "
+        "on each one.\n\n"
+        "Give a score out of 5: 5/5 means the output fully accomplishes every element "
+        "of the prompt; 4/5 means the output mostly fulfills the prompt with only minor "
+        "omissions or slight deviations; 3/5 means the output partially fulfills the "
+        "prompt with noticeable missing elements or incorrect execution; 2/5 means the "
+        "output only addresses a small part of what was asked; 1/5 means the output "
+        "barely addresses the prompt; 0/5 means the output completely ignores the prompt.\n\n"
+        "Also return a 'Reasoning' that identifies specifically what was and wasn't "
+        "accomplished. Refer to below for example format:\n\n"
+        "User Prompt: Turn the person in the first reference image into a cartoon character\n"
+        "Image Ref (via description only): <girl with blonde hair, blue eyes, blue shirt>\n"
+        "Output: <cartoon character, girl with blonde hair, slightly darker blue eyes, blue shirt>\n"
+        "Response: 5/5\n"
+        "Reasoning: The prompt asked for a style change to cartoon, which was fully executed. "
+        "The subject from the reference is present and identifiable. No additional instructions "
+        "were given that were missed.\n\n"
+        "User Prompt: Put the person in image 1 on the sofa in the room shown in image 3, "
+        "and the person in image 2 standing beside the sofa.\n"
+        "Image Ref (via description only, in that order): <a cartoon character of a middle-aged "
+        "male doctor in a white lab coat>, <a cartoon character of a girl with long curly black "
+        "hair>, <a realistic image of a lab with a green sofa against the right wall>\n"
+        "Output: <cartoon male doctor sitting on the green sofa, empty space beside the sofa, "
+        "lab backdrop present>\n"
+        "Response: 2/5\n"
+        "Reasoning: The prompt specified two subjects — the doctor placed on the sofa and the "
+        "girl standing beside it. The doctor's placement is correct, but the girl from image 2 "
+        "is entirely absent from the output. Half of the core instruction was not executed."
     )

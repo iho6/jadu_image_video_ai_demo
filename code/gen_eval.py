@@ -9,6 +9,7 @@ from qwen_vl import QwenVL
 from utils.prompt_utils import (
     build_ref_comf_req_check_prompt,
     build_ref_consistency_eval_prompt,
+    build_prompt_adherence_eval_prompt,
 )
 from utils.vlm_utils import parse_yes_no_eval_output, parse_out_of_5_eval_output
 
@@ -83,9 +84,35 @@ class RefConsistencyEval:
 
 
 class PromptAdherenceEval:
-    """Evaluates how well the generated output adheres to the user prompt."""
+    """Evaluates how well the generated output adheres to the user prompt.
 
-    pass  # placeholder
+    Always runs — no required-check gate. Always looks at both references and output.
+    """
+
+    def prompt_adherence_eval(
+        self,
+        runner: QwenVL,
+        ref_paths: list[str],
+        user_prompt: str,
+        output_path: str,
+    ) -> dict[str, Any]:
+        """Score prompt adherence 0–5.
+
+        Returns {"score": int | None, "reasoning": str}.
+        """
+        output_type = detect_output_type(output_path)
+        n = len(ref_paths)
+        prompt_text = build_prompt_adherence_eval_prompt(
+            user_prompt=user_prompt,
+            ref_idx_range=(1, n),
+            output_idx=n + 1,
+            output_type=output_type,
+        )
+        if output_type == "video":
+            response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
+        else:
+            response = runner.vl_eval([*ref_paths, output_path], prompt_text)
+        return _parse_eval_score(response)
 
 
 class UnpromptedArtifactCheckEval:

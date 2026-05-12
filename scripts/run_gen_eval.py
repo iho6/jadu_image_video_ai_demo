@@ -23,7 +23,7 @@ for _p in (str(_ROOT), str(_ROOT / "code")):
         sys.path.insert(0, _p)
 
 from qwen_vl import QwenVL          # noqa: E402
-from gen_eval import RefConsistencyEval  # noqa: E402
+from gen_eval import RefConsistencyEval, PromptAdherenceEval  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
 
@@ -67,6 +67,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Override model path or HF repo ID (default: QwenVL default).",
     )
+    parser.add_argument(
+        "--ref-coherence",
+        action="store_true",
+        help="Run reference consistency evaluation.",
+    )
+    parser.add_argument(
+        "--prompt-adherence",
+        action="store_true",
+        help="Run prompt adherence evaluation.",
+    )
+    parser.add_argument(
+        "--non-prompt-artifact",
+        action="store_true",
+        help="Run unprompted artifact check (not yet implemented).",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Run all evaluations (default when no eval flag is specified).",
+    )
     args = parser.parse_args(argv)
     if not args.prompt.strip():
         parser.error("--prompt must be non-empty.")
@@ -80,50 +100,79 @@ def main(argv: list[str] | None = None) -> None:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
+    run_all = args.all or not any([args.ref_coherence, args.prompt_adherence, args.non_prompt_artifact])
+    run_ref = run_all or args.ref_coherence
+    run_pa  = run_all or args.prompt_adherence
+    run_npa = run_all or args.non_prompt_artifact
+
     print("Loading model (this may take a moment)...")
     kwargs: dict = {}
     if args.model_id:
         kwargs["model_id"] = args.model_id
     runner = QwenVL(**kwargs)
 
-    evaluator = RefConsistencyEval()
-    result: dict = {"ref_consistency": {}}
+    evaluator_ref = RefConsistencyEval()
+    evaluator_pa  = PromptAdherenceEval()
+    result: dict = {}
 
-    print("Checking whether reference consistency evaluation is required...")
-    try:
-        check = evaluator.ref_comf_required_check(
-            runner=runner,
-            ref_paths=args.refs,
-            user_prompt=args.prompt,
-            output_path=args.gen_output,
-        )
-    except (ValueError, RuntimeError) as exc:
-        print(f"Error during consistency check: {exc}", file=sys.stderr)
-        raise SystemExit(1) from exc
-
-    print(f"\nConsistency required: {check['response']}")
-    print(f"Reasoning: {check['reasoning']}")
-    result["ref_consistency"].update(check)
-
-    if check["required"]:
-        print("\nRunning reference consistency scoring...")
+    # ── ref consistency ───────────────────────────────────────────────────────
+    if run_ref:
+        print("\nChecking whether reference consistency evaluation is required...")
         try:
-            eval_result = evaluator.ref_consistency_eval(
+            check = evaluator_ref.ref_comf_required_check(
                 runner=runner,
                 ref_paths=args.refs,
                 user_prompt=args.prompt,
                 output_path=args.gen_output,
-                prior_analysis=check["reasoning"],
             )
         except (ValueError, RuntimeError) as exc:
-            print(f"Error during consistency eval: {exc}", file=sys.stderr)
+            print(f"Error during consistency check: {exc}", file=sys.stderr)
             raise SystemExit(1) from exc
 
-        print(f"\nConsistency score: {eval_result['score']}/5")
-        print(f"Reasoning: {eval_result['reasoning']}")
-        result["ref_consistency"].update(eval_result)
-    else:
-        print("\nReference consistency evaluation not required — skipping scoring.")
+        print(f"Consistency required: {check['required']}")
+        print(f"Reasoning: {check['reasoning']}")
+        result["ref_consistency"] = dict(check)
+
+        if check["required"]:
+            print("\nRunning reference consistency scoring...")
+            try:
+                eval_result = evaluator_ref.ref_consistency_eval(
+                    runner=runner,
+                    ref_paths=args.refs,
+                    user_prompt=args.prompt,
+                    output_path=args.gen_output,
+                    prior_analysis=check["reasoning"],
+                )
+            except (ValueError, RuntimeError) as exc:
+                print(f"Error during consistency eval: {exc}", file=sys.stderr)
+                raise SystemExit(1) from exc
+            print(f"Consistency score: {eval_result['score']}/5")
+            print(f"Reasoning: {eval_result['reasoning']}")
+            result["ref_consistency"].update(eval_result)
+        else:
+            print("Reference consistency scoring not required — skipping.")
+
+    # ── prompt adherence ──────────────────────────────────────────────────────
+    if run_pa:
+        print("\nRunning prompt adherence evaluation...")
+        try:
+            pa_result = evaluator_pa.prompt_adherence_eval(
+                runner=runner,
+                ref_paths=args.refs,
+                user_prompt=args.prompt,
+                output_path=args.gen_output,
+            )
+        except (ValueError, RuntimeError) as exc:
+            print(f"Error during prompt adherence eval: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
+        print(f"Prompt adherence score: {pa_result['score']}/5")
+        print(f"Reasoning: {pa_result['reasoning']}")
+        result["prompt_adherence"] = pa_result
+
+    # ── non-prompt artifact ───────────────────────────────────────────────────
+    if run_npa:
+        print("\nNon-prompt artifact check: not yet implemented — skipping.")
+        result["non_prompt_artifact"] = {"status": "not_implemented"}
 
     print("\n--- Result ---")
     print(json.dumps(result, indent=2))
