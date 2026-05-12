@@ -889,3 +889,187 @@ Generating questions...
 ```
 
 </details>
+
+---
+
+**Demo 2**
+
+**Inputs**
+
+<img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9" width="220" />
+
+[Generated video](https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b)
+
+**Command**
+
+```bash
+python scripts/run_gen_eval.py \
+  --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9 \
+  --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b \
+  --prompt "Cuddles and Koyal are relaxed. Both gaze out over the balcony, sitting closely but comfortably. Camera Angle: WIDE_SHOT" \
+  --non-prompt-artifact --question
+```
+
+**Output**
+
+**Unprompted artifacts (5)**
+
+1. Puppy turns its head to face the crow
+2. Crow opens its beak as if speaking
+3. Crow turns its head slightly to the left
+4. Puppy’s eyes widen in reaction to the crow
+5. Crow’s feet shift slightly on the railing
+
+**Questions (5)**
+
+1. Did you want the puppy to turn its head to face the crow, or did you want it to remain facing away as in the original reference?
+2. Did you want the crow to open its beak as if speaking, or did you want it to remain silent as in the original reference?
+3. Did you want the crow to turn its head slightly to the left, or did you want it to remain facing forward as in the original reference?
+4. Did you want the puppy’s eyes to widen in reaction to the crow, or did you want it to remain as it was in the original reference?
+5. Did you want the crow’s feet to shift slightly on the railing, or did you want them to remain still as in the original reference?
+
+<details>
+<summary>Full run log (click to expand)</summary>
+
+```text
+(.venv) root@63ae7a98371f:~/jadu_image_video_ai_demo# python scripts/run_gen_eval.py   --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9   --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b   --prompt "Cuddles and Koyal are relaxed. Both gaze out over the balcony, sitting closely but comfortably. Camera Angle: WIDE_SHOT"   --non-prompt-artifact --question
+Loading model (this may take a moment)...
+2026-05-12 09:55:58,490 INFO qwen_vl - Loading Qwen3-VL processor: models/hf/Qwen__Qwen3-VL-4B-Instruct
+2026-05-12 09:55:59,170 INFO qwen_vl - Loading Qwen3-VL model: models/hf/Qwen__Qwen3-VL-4B-Instruct (device=cuda:0, dtype=torch.bfloat16)
+/root/jadu_image_video_ai_demo/.venv/lib/python3.11/site-packages/transformers/models/auto/modeling_auto.py:2284: FutureWarning: The class `AutoModelForVision2Seq` is deprecated and will be removed in v5.0. Please use `AutoModelForImageTextToText` instead.
+  warnings.warn(
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████| 2/2 [00:00<00:00, 22.67it/s]
+2026-05-12 09:56:01,232 INFO qwen_vl - Qwen3-VL Transformers model is ready on cuda:0.
+
+Listing unprompted elements...
+2026-05-12 09:56:02,968 INFO qwen_vl - Built Qwen3 messages with 0 image(s) and 1 video.
+qwen-vl-utils using torchvision to read video.
+2026-05-12 09:56:10,358 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=7.370s
+Qwen3VL requires frame timestamps to construct prompts, but the `fps` of the input video could not be inferred. Probably `video_metadata` was missing from inputs and you passed pre-sampled frames. Defaulting to `fps=24`. Please provide `video_metadata` for more accurate results.
+2026-05-12 09:56:12,196 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+The following generation flags are not valid and may be ignored: [‘temperature’, ‘top_p’, ‘top_k’]. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+2026-05-12 09:56:27,396 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 09:56:31,456 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 09:56:41,238 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=6.818s
+2026-05-12 09:56:43,930 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:56:46,414 INFO qwen_vl - Qwen3-VL inference completed.
+[list_unprompted] 5 item(s): [‘Puppy turns its head to face the crow’, ‘Crow opens its beak as if speaking’, ‘Crow turns its head slightly to the left’, ‘Puppy’s eyes widen in reaction to the crow’, ‘Crow’s feet shift slightly on the railing’]
+Found 5 unprompted element(s):
+  1. Puppy turns its head to face the crow
+  2. Crow opens its beak as if speaking
+  3. Crow turns its head slightly to the left
+  4. Puppy’s eyes widen in reaction to the crow
+  5. Crow’s feet shift slightly on the railing
+Evaluating...
+2026-05-12 09:56:49,366 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 09:57:02,692 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=10.606s
+2026-05-12 09:57:05,281 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:57:09,227 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 09:57:11,593 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 09:57:31,224 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=17.286s
+2026-05-12 09:57:33,600 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:57:36,838 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 09:57:39,349 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 09:57:53,238 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=7.211s
+2026-05-12 09:57:55,895 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:57:59,347 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 09:58:01,467 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 09:58:09,538 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=5.261s
+2026-05-12 09:58:12,282 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:58:15,781 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 09:58:20,384 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 09:58:32,990 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=10.306s
+2026-05-12 09:58:35,496 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:58:38,623 INFO qwen_vl - Qwen3-VL inference completed.
+  [desired] Puppy turns its head to face the crow — The prompt describes the characters as "relaxed" and "gazing out over the balcony," which implies they are engaged in a quiet, contemplative moment. The puppy turning its head to face the crow is a natural, subtle interaction that enhances the sense of companionship and relaxation, fitting the mood of the scene. It is not an error but a plausible, contextually appropriate behavior.
+  [desired] Crow opens its beak as if speaking — The prompt describes Cuddles and Koyal as relaxed and gazing out over the balcony. The crow opening its beak as if speaking is a natural, subtle expression of interaction or communication that fits the relaxed, contemplative mood of the scene. It enhances the narrative without contradicting the prompt, making it a creative and acceptable addition.
+  [desired] Crow turns its head slightly to the left — The prompt describes the characters as "relaxed" and "gazing out over the balcony," which implies a calm, natural posture. The crow turning its head slightly to the left is a subtle, natural movement that fits the relaxed, observational context. It does not contradict the prompt and enhances the sense of realism or animation, making it a desired artifact.
+  [desired] Puppy’s eyes widen in reaction to the crow — The prompt describes the characters as "relaxed" and "gazing out," which implies a calm, observational moment. The puppy’s eyes widening in reaction to the crow is a natural, subtle expression of surprise or curiosity that fits the context of a relaxed interaction. It enhances the emotional nuance of the scene without contradicting the prompt, making it a desired artistic addition.
+  [desired] Crow’s feet shift slightly on the railing — The crow’s feet shifting slightly on the railing is a subtle, natural movement that could occur in a relaxed, static scene. It adds realism and liveliness without contradicting the prompt, which describes the characters as "relaxed" and "gazing out." This is an acceptable creative decision that enhances the scene’s believability.
+
+Listing unprompted elements...
+2026-05-12 09:58:39,507 INFO qwen_vl - Built Qwen3 messages with 0 image(s) and 1 video.
+2026-05-12 09:58:56,286 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=16.778s
+2026-05-12 09:58:57,992 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:59:11,260 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 09:59:13,345 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 09:59:26,591 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=10.956s
+2026-05-12 09:59:29,094 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:59:31,477 INFO qwen_vl - Qwen3-VL inference completed.
+[list_unprompted] 5 item(s): [‘Puppy turns its head to face the crow’, ‘Crow opens its beak as if speaking’, ‘Crow turns its head slightly to the left’, ‘Puppy’s eyes widen in reaction to the crow’, ‘Crow’s feet shift slightly on the railing’]
+Found 5 unprompted element(s):
+  1. Puppy turns its head to face the crow
+  2. Crow opens its beak as if speaking
+  3. Crow turns its head slightly to the left
+  4. Puppy’s eyes widen in reaction to the crow
+  5. Crow’s feet shift slightly on the railing
+Generating questions...
+2026-05-12 09:59:37,186 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 09:59:53,866 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=10.407s
+2026-05-12 09:59:56,405 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 09:59:57,944 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 09:59:59,971 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 10:00:08,434 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=6.478s
+2026-05-12 10:00:11,278 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 10:00:12,761 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 10:00:14,946 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 10:00:26,482 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=9.429s
+2026-05-12 10:00:28,891 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 10:00:30,432 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 10:00:32,893 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 10:00:43,838 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=9.199s
+2026-05-12 10:00:46,487 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 10:00:48,092 INFO qwen_vl - Qwen3-VL inference completed.
+2026-05-12 10:00:49,361 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+2026-05-12 10:00:55,170 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=4.424s
+2026-05-12 10:00:57,594 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 10:00:59,111 INFO qwen_vl - Qwen3-VL inference completed.
+  1. Did you want the puppy to turn its head to face the crow, or did you want it to remain facing away as in the original reference?
+  2. Did you want the crow to open its beak as if speaking, or did you want it to remain silent as in the original reference?
+  3. Did you want the crow to turn its head slightly to the left, or did you want it to remain facing forward as in the original reference?
+  4. Did you want the puppy’s eyes to widen in reaction to the crow, or did you want it to remain as it was in the original reference?
+  5. Did you want the crow’s feet to shift slightly on the railing, or did you want them to remain still as in the original reference?
+
+--- Result ---
+{
+  "non_prompt_artifact": {
+    "items": [
+      {
+        "artifact": "Puppy turns its head to face the crow",
+        "desired": true,
+        "reasoning": "The prompt describes the characters as \"relaxed\" and \"gazing out over the balcony,\" which implies they are engaged in a quiet, contemplative moment. The puppy turning its head to face the crow is a natural, subtle interaction that enhances the sense of companionship and relaxation, fitting the mood of the scene. It is not an error but a plausible, contextually appropriate behavior."
+      },
+      {
+        "artifact": "Crow opens its beak as if speaking",
+        "desired": true,
+        "reasoning": "The prompt describes Cuddles and Koyal as relaxed and gazing out over the balcony. The crow opening its beak as if speaking is a natural, subtle expression of interaction or communication that fits the relaxed, contemplative mood of the scene. It enhances the narrative without contradicting the prompt, making it a creative and acceptable addition."
+      },
+      {
+        "artifact": "Crow turns its head slightly to the left",
+        "desired": true,
+        "reasoning": "The prompt describes the characters as \"relaxed\" and \"gazing out over the balcony,\" which implies a calm, natural posture. The crow turning its head slightly to the left is a subtle, natural movement that fits the relaxed, observational context. It does not contradict the prompt and enhances the sense of realism or animation, making it a desired artifact."
+      },
+      {
+        "artifact": "Puppy’s eyes widen in reaction to the crow",
+        "desired": true,
+        "reasoning": "The prompt describes the characters as \"relaxed\" and \"gazing out,\" which implies a calm, observational moment. The puppy’s eyes widening in reaction to the crow is a natural, subtle expression of surprise or curiosity that fits the context of a relaxed interaction. It enhances the emotional nuance of the scene without contradicting the prompt, making it a desired artistic addition."
+      },
+      {
+        "artifact": "Crow’s feet shift slightly on the railing",
+        "desired": true,
+        "reasoning": "The crow’s feet shifting slightly on the railing is a subtle, natural movement that could occur in a relaxed, static scene. It adds realism and liveliness without contradicting the prompt, which describes the characters as \"relaxed\" and \"gazing out.\" This is an acceptable creative decision that enhances the scene’s believability."
+      }
+    ]
+  },
+  "questions": [
+    "Did you want the puppy to turn its head to face the crow, or did you want it to remain facing away as in the original reference?",
+    "Did you want the crow to open its beak as if speaking, or did you want it to remain silent as in the original reference?",
+    "Did you want the crow to turn its head slightly to the left, or did you want it to remain facing forward as in the original reference?",
+    "Did you want the puppy’s eyes to widen in reaction to the crow, or did you want it to remain as it was in the original reference?",
+    "Did you want the crow’s feet to shift slightly on the railing, or did you want them to remain still as in the original reference?"
+  ]
+}
+```
+
+</details>
