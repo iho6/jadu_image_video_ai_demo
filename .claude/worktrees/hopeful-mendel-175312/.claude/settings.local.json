@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/Work/Jadu Interview/jadu_image_video_ai_demo/**)",
+      "Bash(python -m pytest tests/test_qwen_vl.py tests/test_qwen_chat.py tests/test_run_qwen_chat.py -v)",
+      "Bash(python -m pytest tests/test_run_qwen_chat.py -q)",
+      "Bash(python -m pytest tests/test_run_qwen_chat.py tests/test_qwen_chat.py tests/test_qwen_vl.py -q)"
+    ]
+  }
+}

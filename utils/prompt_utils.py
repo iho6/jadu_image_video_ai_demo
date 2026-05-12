@@ -1,7 +1,13 @@
-"""Prompt text for edit-prompt enhancement (no API / VL dependencies).
+"""Prompt constants and builders for all model-facing text in the pipeline.
 
-The system instructions mirror the vendored ``polish_edit_prompt`` helper; they are
-duplicated here so runtime code does not import from ``models/``.
+Sections
+--------
+- Edit prompt enhancement  (scripts/run_enhance_edit_prompt.py)
+- Ref-guided generation    (code/ref_guided_gen.py)
+- Character sheet creation (scripts/run_character_sheet_creation.py)
+- Chat REPL                (scripts/run_qwen_chat.py)
+
+Runtime code should import from here; never embed prompt literals in business logic.
 """
 
 from __future__ import annotations
@@ -142,4 +148,13 @@ CHARACTER_DESCRIPTION_PROMPT = (
     "for an image generation. Describe all the features from the head (hair, eye, face, "
     "ear, mouth), body, arms, legs, feet (e.g. shoes) with concise detail. Output just "
     "a few line of description of the character you see. Nothing else."
+)
+
+
+# =============================================================================
+# Chat REPL (scripts/run_qwen_chat.py)
+# =============================================================================
+
+CHAT_SYSTEM_PROMPT = (
+    "place_holder"
 )

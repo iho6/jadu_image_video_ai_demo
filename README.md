@@ -157,6 +157,44 @@ python scripts/run_ref_guided_gen.py \
 Outputs:
 - Prints one or more lines like `saved <path>` for generated PNGs.
 
+### Qwen Chat REPL (`run_qwen_chat.py`)
+
+Interactive multi-turn chat session with Qwen3-VL. Maintains full conversation history across turns and supports inline image or URL attachment.
+
+```bash
+python scripts/run_qwen_chat.py
+python scripts/run_qwen_chat.py --model-id models/hf/Qwen__Qwen3-VL-4B-Instruct
+python scripts/run_qwen_chat.py --system-prompt "You are a character art assistant."
+python scripts/run_qwen_chat.py --transcript-dir output/chat_transcripts
+```
+
+- `--model-id` — optional; local model path or HF repo ID (default: `models/hf/Qwen__Qwen3-VL-4B-Instruct`).
+- `--system-prompt` — optional; custom system prompt string (default: character art assistant prompt).
+- `--transcript-dir` — optional; directory for JSON session transcripts (default: `output/chat_transcripts/`).
+
+**Image syntax** — prefix your message with bracket-enclosed paths or URLs:
+
+```
+[photo.png] describe this character
+[a.png, b.png] compare these two
+[https://example.com/img.png] what is this?
+```
+
+**Slash commands:**
+
+| Command   | Effect                                      |
+|-----------|---------------------------------------------|
+| `/quit`   | Save transcript and exit                    |
+| `/reset`  | Clear conversation history (keeps prompt)   |
+| `/export` | Save transcript now, continue chatting      |
+| `/help`   | Show command reference                      |
+
+Images from prior turns are automatically stripped from the context payload before each inference call to avoid re-embedding them in VRAM. A placeholder text is inserted so the model retains awareness of earlier images.
+
+Outputs:
+- Prints assistant replies to stdout after each turn.
+- On exit (`/quit`, EOF, or Ctrl-C), writes `output/chat_transcripts/session_YYYYMMDD_HHMMSS.json` containing `model_id`, `turns`, `exported_at`, and the full `messages` list.
+
 # Tests
 
 ```bash

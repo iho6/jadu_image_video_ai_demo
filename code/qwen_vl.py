@@ -97,8 +97,10 @@ class QwenVL:
         image_sources: Sequence[str],
         prompt: str,
         video_source: Optional[str] = None,
+        *,
+        max_new_tokens: int = 1024,
     ) -> str:
-        """Run one Qwen3-VL multimodal evaluation and return response text."""
+        """Run one Qwen3-VL multimodal evaluation and return the generated response text."""
         messages = self.build_messages(image_sources, prompt, video_source=video_source)
 
         try:
@@ -128,11 +130,59 @@ class QwenVL:
         LOGGER.info("Starting Qwen3-VL inference on %s.", self.device)
         try:
             with torch.inference_mode():
-                out = self.model.generate(**inputs, max_new_tokens=256, do_sample=False)
+                out = self.model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
         except Exception as exc:
             LOGGER.exception("Qwen3-VL inference failed")
             raise RuntimeError("Qwen3-VL inference failed.") from exc
 
-        text = self.processor.batch_decode(out, skip_special_tokens=True)[0]
+        generated = out[:, inputs.input_ids.shape[1]:]
+        text = self.processor.batch_decode(generated, skip_special_tokens=True)[0]
         LOGGER.info("Qwen3-VL inference completed.")
-        return str(text)
+        return str(text).strip()
+
+    def chat(
+        self,
+        messages: list[dict],
+        *,
+        max_new_tokens: int = 1024,
+    ) -> str:
+        """Run multi-turn inference over a full messages list; return only the new assistant text."""
+        if not messages:
+            raise ValueError("messages must be non-empty")
+
+        try:
+            prompt_text = self.processor.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            image_inputs, video_inputs, video_kwargs = process_vision_info(
+                messages,
+                return_video_kwargs=True,
+            )
+        except Exception as exc:
+            LOGGER.exception("Qwen3-VL chat input preparation failed")
+            raise RuntimeError("Failed to prepare Qwen3-VL chat input.") from exc
+
+        proc_kwargs: dict[str, Any] = dict(video_kwargs) if isinstance(video_kwargs, dict) else {}
+        inputs = self.processor(
+            text=[prompt_text],
+            images=image_inputs,
+            videos=video_inputs,
+            padding=True,
+            return_tensors="pt",
+            **proc_kwargs,
+        ).to(self.device)
+
+        LOGGER.info("Starting Qwen3-VL chat inference (turn depth=%d).", len(messages))
+        try:
+            with torch.inference_mode():
+                out = self.model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
+        except Exception as exc:
+            LOGGER.exception("Qwen3-VL chat inference failed")
+            raise RuntimeError("Qwen3-VL chat inference failed.") from exc
+
+        generated = out[:, inputs.input_ids.shape[1]:]
+        text = self.processor.batch_decode(generated, skip_special_tokens=True)[0]
+        LOGGER.info("Qwen3-VL chat inference completed.")
+        return str(text).strip()

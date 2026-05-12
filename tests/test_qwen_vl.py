@@ -10,23 +10,37 @@ from types import SimpleNamespace
 import pytest
 
 
+def _content_items(msg: dict):
+    """Yield content items; handles both list content (user) and string content (assistant)."""
+    content = msg.get("content", [])
+    if isinstance(content, list):
+        yield from content
+
+
 def fake_process_vision_info(messages, **kwargs):
     has_image = any(
-        item.get("type") == "image"
+        isinstance(item, dict) and item.get("type") == "image"
         for msg in messages
-        for item in msg.get("content", [])
+        for item in _content_items(msg)
     )
     has_video = any(
-        item.get("type") == "video"
+        isinstance(item, dict) and item.get("type") == "video"
         for msg in messages
-        for item in msg.get("content", [])
+        for item in _content_items(msg)
     )
     image_inputs = ["image-bytes"] if has_image else None
     video_inputs = ["video-bytes"] if has_video else None
     return image_inputs, video_inputs, {"fps": 1}
 
 
+class _FakeIds:
+    """Minimal input_ids stub with a .shape attribute."""
+    shape = (1, 1)  # shape[1] == 1, so out[:, 1:] works with FakeTensor
+
+
 class FakeBatch(dict):
+    input_ids = _FakeIds()
+
     def to(self, _device):
         return self
 
@@ -53,6 +67,13 @@ class FakeAutoProcessor:
         return FakeProcessor()
 
 
+class FakeTensor:
+    """Minimal stub supporting out[:, n:] slicing used by chat() and vl_eval()."""
+
+    def __getitem__(self, key):
+        return self  # slice returns self; batch_decode accepts it
+
+
 class FakeModel:
     device = "cpu"
 
@@ -63,7 +84,7 @@ class FakeModel:
         return self
 
     def generate(self, **kwargs):
-        return ["tokens"]
+        return FakeTensor()
 
 
 class FakeAutoModelForVision2Seq:
@@ -117,7 +138,9 @@ def qwen_vl_module(monkeypatch):
 
 @pytest.fixture
 def runner(qwen_vl_module):
-    return qwen_vl_module.QwenVL()
+    # "dummy-model" contains no "/" and doesn't start with "." so the path
+    # existence check in __init__ is skipped (no real weights needed for tests).
+    return qwen_vl_module.QwenVL(model_id="dummy-model")
 
 
 def test_build_messages_images_only(runner):
@@ -138,3 +161,30 @@ def test_build_messages_video_only(runner):
 def test_vl_eval_returns_first_generated_text(runner):
     out = runner.vl_eval(["a.png"], "prompt")
     assert out == "ok-response"
+
+
+def test_chat_single_turn(runner):
+    messages = [{"role": "user", "content": [{"type": "text", "text": "hi"}]}]
+    assert runner.chat(messages) == "ok-response"
+
+
+def test_chat_multi_turn(runner):
+    messages = [
+        {"role": "user", "content": [{"type": "text", "text": "hi"}]},
+        {"role": "assistant", "content": "hello"},
+        {"role": "user", "content": [{"type": "text", "text": "2+2?"}]},
+    ]
+    assert runner.chat(messages) == "ok-response"
+
+
+def test_chat_with_image(runner):
+    messages = [{"role": "user", "content": [
+        {"type": "image", "image": "x.png"},
+        {"type": "text", "text": "describe"},
+    ]}]
+    assert runner.chat(messages) == "ok-response"
+
+
+def test_chat_raises_on_empty(runner):
+    with pytest.raises(ValueError, match="non-empty"):
+        runner.chat([])
