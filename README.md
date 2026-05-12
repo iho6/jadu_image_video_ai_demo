@@ -399,9 +399,7 @@ The following generation flags are not valid and may be ignored: ['temperature',
 
 **Inputs**
 
-- Video: `input/scene_video.mp4`
-- Image:
-
+<video src="https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-ee0e77cc-d735-4d35-bcbe-ef89eaa23789" controls width="220"></video>
 <img src="input/room.png" width="220" />
 
 **Command**
