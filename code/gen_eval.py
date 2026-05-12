@@ -57,7 +57,8 @@ class RefConsistencyEval:
             response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
         else:
             response = runner.vl_eval([*ref_paths, output_path], prompt_text)
-        return parse_yes_no_eval_output(response)
+        parsed = parse_yes_no_eval_output(response)
+        return {"required": parsed["response"], "reasoning": parsed["reasoning"]}
 
     def ref_consistency_eval(
         self,
@@ -158,10 +159,11 @@ class UnpromptedArtifactCheckEval:
             response = runner.vl_eval([*ref_paths, output_path], prompt_text)
 
         items = parse_bullet_list(response)
+        items_log = "\n".join(f"  {i+1}. {item}" for i, item in enumerate(items))
         if len(items) > 10:
-            eprint(f"[list_unprompted] {len(items)} item(s) returned; capping at 10. Full list: {items}")
+            eprint(f"[list_unprompted] {len(items)} item(s) returned; capping at 10:\n{items_log}")
         else:
-            eprint(f"[list_unprompted] {len(items)} item(s): {items}")
+            eprint(f"[list_unprompted] {len(items)} item(s):\n{items_log}")
         return {
             "description": description,
             "unprompted_items": items,
