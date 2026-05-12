@@ -6,6 +6,7 @@ from typing import Any
 
 from qwen_vl import QwenVL
 from describe_media import describe_media
+from utils.generic_utils import eprint
 from utils.prompt_utils import (
     build_ref_comf_req_check_prompt,
     build_ref_consistency_eval_prompt,
@@ -168,6 +169,7 @@ class UnpromptedArtifactCheckEval:
         user_prompt: str,
         output_path: str,
         unprompted_items: list[str],
+        debug: bool = False,
     ) -> list[dict[str, Any]]:
         """Evaluate each unprompted item as desired (True) or undesired (False).
 
@@ -189,7 +191,9 @@ class UnpromptedArtifactCheckEval:
                 response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
             else:
                 response = runner.vl_eval([*ref_paths, output_path], prompt_text)
-            results.append(parse_artifact_eval(response))
+            if debug:
+                eprint(f"[DEBUG artifact_eval] item={item!r} raw={response!r}")
+            results.append(parse_artifact_eval(response, item))
         return results
 
     def format_unprompted_as_questions(
@@ -199,6 +203,7 @@ class UnpromptedArtifactCheckEval:
         user_prompt: str,
         output_path: str,
         unprompted_items: list[str],
+        debug: bool = False,
     ) -> list[str]:
         """Reformat each unprompted item as a 'Did you want...' question.
 
@@ -219,5 +224,7 @@ class UnpromptedArtifactCheckEval:
                 response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
             else:
                 response = runner.vl_eval([*ref_paths, output_path], prompt_text)
+            if debug:
+                eprint(f"[DEBUG question] item={item!r} raw={response!r}")
             questions.append(extract_assistant_text(response).strip())
         return questions

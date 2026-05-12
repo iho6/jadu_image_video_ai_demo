@@ -92,6 +92,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Run all evaluations (default when no eval flag is specified). Does not include --question.",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print raw VLM responses to stderr for debugging.",
+    )
     args = parser.parse_args(argv)
     if not args.prompt.strip():
         parser.error("--prompt must be non-empty.")
@@ -202,6 +207,7 @@ def main(argv: list[str] | None = None) -> None:
                 user_prompt=args.prompt,
                 output_path=args.gen_output,
                 unprompted_items=items,
+                debug=args.debug,
             )
         except (ValueError, RuntimeError) as exc:
             print(f"Error during artifact eval: {exc}", file=sys.stderr)
@@ -243,6 +249,7 @@ def main(argv: list[str] | None = None) -> None:
                 user_prompt=args.prompt,
                 output_path=args.gen_output,
                 unprompted_items=items,
+                debug=args.debug,
             )
         except (ValueError, RuntimeError) as exc:
             print(f"Error during question formatting: {exc}", file=sys.stderr)

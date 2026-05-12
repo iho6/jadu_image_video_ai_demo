@@ -154,30 +154,29 @@ def parse_bullet_list(text: str) -> list[str]:
     return items
 
 
-def parse_artifact_eval(text: str) -> dict[str, Any]:
+def parse_artifact_eval(text: str, item: str) -> dict[str, Any]:
     """Parse a single artifact evaluation block from a VLM response.
 
-    Expects one block of:
-        Artifact: <description>
+    Expects two lines:
         Response: True/False
         Reasoning: <reasoning>
+
+    The artifact description is taken directly from the input `item` to avoid
+    parser failures caused by model output format variation.
 
     Returns {"artifact": str, "desired": bool | None, "reasoning": str}.
     desired=None means the response could not be parsed.
     """
     assistant = extract_assistant_text(text)
-    artifact = ""
     desired: bool | None = None
     reasoning = ""
     for line in assistant.splitlines():
         s = line.strip()
         lower = s.lower()
-        if lower.startswith("artifact:"):
-            artifact = s.split(":", 1)[1].strip()
-        elif lower.startswith("response:"):
+        if lower.startswith("response:"):
             val = s.split(":", 1)[1].strip().lower()
             desired = val.startswith("true")
         elif lower.startswith("reasoning:"):
             reasoning = s.split(":", 1)[1].strip()
-    return {"artifact": artifact, "desired": desired, "reasoning": reasoning}
+    return {"artifact": item, "desired": desired, "reasoning": reasoning}
 
