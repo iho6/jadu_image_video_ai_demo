@@ -195,6 +195,51 @@ Outputs:
 - Prints assistant replies to stdout after each turn.
 - On exit (`/quit`, EOF, or Ctrl-C), writes `output/chat_transcripts/session_YYYYMMDD_HHMMSS.json` containing `model_id`, `turns`, `exported_at`, and the full `messages` list.
 
+### Generation eval CLI (`run_gen_eval.py`)
+
+Two-step VLM evaluation of a generated image or video against reference inputs:
+1. **Required check** — decides whether reference consistency should be expected given the prompt and references.
+2. **Consistency score** — if required, scores consistency 0–5 grounded by the check's reasoning.
+
+Output type (image vs video) is detected automatically from the `--gen-output` extension.
+
+#### Example: evaluate a generated image
+
+```bash
+python scripts/run_gen_eval.py \
+  --refs ref1.png ref2.png \
+  --gen-output output.png \
+  --prompt "Put the person in image 1 on the sofa in image 2"
+```
+
+#### Example: evaluate a generated video
+
+```bash
+python scripts/run_gen_eval.py \
+  --refs ref.png \
+  --gen-output output.mp4 \
+  --prompt "Animate this character walking"
+```
+
+- `--refs` — required; one or more reference image paths or URLs used during generation.
+- `--gen-output` — required; path or URL of the generated output (image or video) to evaluate.
+- `--prompt` — required; the user prompt that was used to produce the generated output (non-empty).
+- `--model-id` — optional; override model path or HF repo ID (default: QwenVL default).
+
+Outputs:
+- Prints consistency required decision and reasoning to stdout.
+- If required, prints consistency score (0–5) and reasoning.
+- Prints final JSON result to stdout:
+  ```json
+  {
+    "ref_consistency": {
+      "response": true,
+      "reasoning": "...",
+      "score": 4
+    }
+  }
+  ```
+
 # Tests
 
 ```bash
