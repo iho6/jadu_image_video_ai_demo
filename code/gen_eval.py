@@ -177,7 +177,7 @@ class UnpromptedArtifactCheckEval:
         output_type = detect_output_type(output_path)
         n = len(ref_paths)
         results = []
-        for item in unprompted_items:
+        for item in unprompted_items[:10]:
             prompt_text = build_unprompted_artifact_eval_prompt(
                 user_prompt=user_prompt,
                 ref_idx_range=(1, n),

@@ -208,7 +208,12 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(1) from exc
 
         for entry in npa_result:
-            flag = "desired" if entry["desired"] else "undesired"
+            if entry["desired"] is None:
+                flag = "unparsed"
+            elif entry["desired"]:
+                flag = "desired"
+            else:
+                flag = "undesired"
             print(f"  [{flag}] {entry['artifact']} — {entry['reasoning']}")
         result["non_prompt_artifact"] = {"items": npa_result}
 

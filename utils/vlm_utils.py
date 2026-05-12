@@ -163,11 +163,13 @@ def parse_artifact_eval(text: str) -> dict[str, Any]:
         Reasoning: <reasoning>
 
     Returns {"artifact": str, "desired": bool | None, "reasoning": str}.
+    desired=None means the response could not be parsed.
     """
+    assistant = extract_assistant_text(text)
     artifact = ""
     desired: bool | None = None
     reasoning = ""
-    for line in text.splitlines():
+    for line in assistant.splitlines():
         s = line.strip()
         lower = s.lower()
         if lower.startswith("artifact:"):
