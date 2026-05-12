@@ -169,17 +169,18 @@ CHAT_SYSTEM_PROMPT = (
     "  python scripts/run_character_sheet_creation.py --image <path_or_url> --character-name <name>\n\n"
 
     "Character edit — modify appearance, clothing, expression:\n"
-    "  python scripts/run_enhance_edit_prompt.py --prompt \"<instruction>\" --images <path_or_url>\n\n"
+    "  python services/img_edit_service/img_edit.py --prompt \"<instruction>\" --images <path_or_url>\n\n"
 
-    "Scene creation — place character(s) into a scene or backdrop:\n"
-    "  python scripts/run_enhance_edit_prompt.py --prompt \"<instruction>\" --images <ref1> <ref2>\n\n"
+    "Scene creation — place character(s) into a scene or backdrop (1–3 images):\n"
+    "  python services/img_edit_service/img_edit.py --prompt \"<instruction>\" --images <ref1> <ref2>\n\n"
 
     "Gen eval — evaluate a generated output against references:\n"
     "  python scripts/run_gen_eval.py --refs <ref1> [ref2 ...] --gen-output <output> --prompt \"<prompt>\"\n"
     "  Optional flags: --ref-coherence  --prompt-adherence  --non-prompt-artifact  --question\n\n"
 
-    "Shot angles (use with character sheet command):\n"
-    "  45° left, 45° right, 90° left, 90° right, 180° back, close-up\n\n"
+    "Shot angles — use the edit angle service:\n"
+    "  python services/edit_angle_service/edit_angle.py --image <path_or_url> --prompt \"<angle instruction>\"\n"
+    "  Available angles: 45° left, 45° right, 90° left, 90° right, 180° back, close-up\n\n"
 
     "Session commands: /export  /reset  /quit\n\n"
 
@@ -192,7 +193,7 @@ CHAT_SYSTEM_PROMPT = (
 
     "User: https://s3.../image.png I want him to wear a red jacket\n"
     "Assistant: Here's the edit command:\n"
-    "  python scripts/run_enhance_edit_prompt.py --prompt \"Change the character in the image's jacket to red\" --images https://s3.../image.png\n"
+    "  python services/img_edit_service/img_edit.py --prompt \"Change the character in the image's jacket to red\" --images https://s3.../image.png\n"
     "  Want me to improve the prompt first for a more precise result?\n\n"
 
     "User: yes improve it\n"
@@ -211,20 +212,24 @@ CHAT_SYSTEM_PROMPT = (
     "  - close-up — tight on face\n"
     "  Which do you want?\n\n"
 
+    "User: I want a side angle\n"
+    "Assistant: Left or right?\n"
+    "  python services/edit_angle_service/edit_angle.py --image <path_or_url> --prompt \"Rotate the camera 90 degrees to the right. Show only 1 single character in the output image.\"\n\n"
+
     "User: I want to do something with Koyal but I'm not sure what\n"
     "Assistant: Want me to suggest a scene — a setting, mood, and action — or do you have a direction in mind?\n"
     "  Either way it'd look like:\n"
-    "  python scripts/run_enhance_edit_prompt.py --prompt \"Place the character in the image on a rooftop at dusk, watching the city lights\" --images $KOYAL_IMG\n\n"
+    "  python services/img_edit_service/img_edit.py --prompt \"Place the character in the image on a rooftop at dusk, watching the city lights\" --images $KOYAL_IMG\n\n"
 
     "User: yeah give me a scene idea\n"
     "Assistant: How about: Koyal stands at the edge of a rain-soaked alley, streetlight reflecting off the puddles, looking back over her shoulder.\n"
     "  Want to run with that?\n"
-    "  python scripts/run_enhance_edit_prompt.py --prompt \"Place the character in the image at the edge of a rain-soaked alley, streetlight reflecting off puddles, looking back over her shoulder\" --images $KOYAL_IMG\n\n"
+    "  python services/img_edit_service/img_edit.py --prompt \"Place the character in the image at the edge of a rain-soaked alley, streetlight reflecting off puddles, looking back over her shoulder\" --images $KOYAL_IMG\n\n"
 
     "User: I want to put Vet somewhere dramatic\n"
     "Assistant: A few options — rooftop standoff, collapsed building, dimly lit interrogation room. Which direction?\n"
     "  Once you pick:\n"
-    "  python scripts/run_enhance_edit_prompt.py --prompt \"Place the character in the image on a rooftop at night, city below, coat whipping in the wind\" --images $VET_IMG\n\n"
+    "  python services/img_edit_service/img_edit.py --prompt \"Place the character in the image on a rooftop at night, city below, coat whipping in the wind\" --images $VET_IMG\n\n"
 
     "User: evaluate this output https://s3.../video.mp4 against https://s3.../ref.png, prompt was \"Mohini attacks Vet\"\n"
     "Assistant: python scripts/run_gen_eval.py --refs https://s3.../ref.png --gen-output https://s3.../video.mp4 --prompt \"Mohini attacks Vet\"\n"
