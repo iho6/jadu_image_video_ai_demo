@@ -157,9 +157,14 @@ class UnpromptedArtifactCheckEval:
         else:
             response = runner.vl_eval([*ref_paths, output_path], prompt_text)
 
+        items = parse_bullet_list(response)
+        if len(items) > 10:
+            eprint(f"[list_unprompted] {len(items)} item(s) returned; capping at 10. Full list: {items}")
+        else:
+            eprint(f"[list_unprompted] {len(items)} item(s): {items}")
         return {
             "description": description,
-            "unprompted_items": parse_bullet_list(response),
+            "unprompted_items": items,
         }
 
     def unprompted_artifact_list_eval(
@@ -179,7 +184,10 @@ class UnpromptedArtifactCheckEval:
         output_type = detect_output_type(output_path)
         n = len(ref_paths)
         results = []
-        for item in unprompted_items[:10]:
+        capped = unprompted_items[:10]
+        if len(unprompted_items) > 10:
+            eprint(f"[artifact_eval] capped to {len(capped)} of {len(unprompted_items)} item(s)")
+        for item in capped:
             prompt_text = build_unprompted_artifact_eval_prompt(
                 user_prompt=user_prompt,
                 ref_idx_range=(1, n),
