@@ -6,7 +6,9 @@
       "Bash(python -m pytest tests/test_run_qwen_chat.py -q)",
       "Bash(python -m pytest tests/test_run_qwen_chat.py tests/test_qwen_chat.py tests/test_qwen_vl.py -q)",
       "Bash(python scripts/run_gen_eval.py --help)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "WebSearch",
+      "Bash(grep -o \"Did you want[^\\\\\\\\\\\\\\\\]*\" \"C:\\\\Users\\\\ianch\\\\.claude\\\\projects\\\\D--Work-Jadu-Interview-jadu-image-video-ai-demo--claude-worktrees-hopeful-mendel-175312\\\\615d0fd6-e3ac-49ab-b693-cf5994bbd08b.jsonl\")"
     ]
   }
 }

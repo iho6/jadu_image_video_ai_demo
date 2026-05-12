@@ -13,6 +13,7 @@
   - [Image edit service](#image-edit-service-img_edit)
 - [Eval](#eval)
   - [Unprompted Artifact Check](#unprompted-artifact-check---non-prompt-artifact--question)
+  - [Reference Coherence Check](#reference-coherence-check---ref-coherence)
 
 ## Quickstart (recommended)
 
@@ -1070,6 +1071,216 @@ Generating questions...
     "Did you want the crow’s feet to shift slightly on the railing, or did you want them to remain still as in the original reference?"
   ]
 }
+```
+
+</details>
+
+---
+
+### Reference Coherence Check (`--ref-coherence`)
+
+Two-step evaluation that first determines whether consistency between the reference(s) and output should be expected at all, then scores it if so. The check reasoning from step 1 is passed into step 2 to ground the scoring.
+
+**Pipeline**
+
+```
+Inputs: ref image(s)  ·  user prompt  ·  generated output
+                              │
+                              ▼
+               ref_comf_required_check()
+               ── should consistency be evaluated?
+                              │
+               ┌──────────────┴──────────────┐
+               ▼                             ▼
+         required: Yes                 required: No
+               │                        skip scoring
+               ▼
+     ref_consistency_eval()
+     ── grounded by required_check reasoning
+               │
+         score 0–5 + reasoning
+```
+
+<details>
+<summary>Prompts (click to expand)</summary>
+
+**`ref_comf_required_check()` — is consistency evaluation needed?**
+
+```
+You are evaluating an {task_desc} with input references (image 1 to image N),
+the following user prompt: {user_prompt}, and ({media_label} N+1), being the output.
+
+Think about the task the user is trying to accomplish via the prompt and references.
+Is this a task where people/scenes/items in the reference should keep layout/appearance
+consistent and unchanged? If specific items in the reference should appear the same in
+the output, Response: Yes. Else if the user is using the reference vaguely as a stylistic
+or concept guide, without specific things needing to look exactly the same, Response: No.
+
+Note: even if the output is a video with motion, action, or style change, if the same
+character or person from the reference appears in the output, their identity should still
+be checked for consistency — face, distinguishing features, clothing, and overall
+appearance. Only respond No if the reference is used purely as a stylistic or thematic
+guide with no specific characters or elements carried over.
+
+Ensure the format ‘Response: Yes or No’ and ‘Reasoning: str’.
+```
+
+---
+
+**`ref_consistency_eval()` — score consistency 0–5**
+
+```
+You are evaluating an {task_desc} with input references (image 1 to image N)
+and the following user prompt: {user_prompt}. ({media_label} N+1) is the output result.
+
+In this task, items in the reference should remain consistent. Here is an analysis
+of what should be consistent by another evaluator:
+{prior_analysis}
+
+Based on what should be kept consistent, evaluate every aspect of the appearance,
+layout, proportion, lighting/color, and other aspects between input reference(s) and
+output to give a score out of 5:
+5/5 — perfect consistency; 4/5 — mild, unnoticeable inconsistencies;
+3/5 — noticeable inconsistencies present; 2/5 — many noticeable inconsistencies;
+1/5 — mostly inconsistent; 0/5 — completely inconsistent.
+
+Ensure the format ‘Response: X/5’ and ‘Reasoning: str’.
+```
+
+</details>
+
+**Demo**
+
+**Inputs**
+
+<img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9" width="220" />
+<img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec" width="220" />
+
+[Generated video](https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b)
+
+**Command**
+
+```bash
+python scripts/run_gen_eval.py \
+  --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9 \
+         https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec \
+  --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b \
+  --prompt "Cuddles and Koyal are relaxed. Both gaze out over the balcony, sitting closely but comfortably. Camera Angle: WIDE_SHOT" \
+  --ref-coherence
+```
+
+**Output**
+
+Consistency required: **True**
+
+Reasoning: The user prompt specifies that Cuddles and Koyal are relaxed and sitting closely but comfortably on the balcony, with the camera in a WIDE_SHOT. The references show the characters in this exact setup — Cuddles (the dog) and Koyal (the crow) seated on the balcony railing, facing the cityscape under a full moon. The prompt does not request any stylistic change or reinterpretation; it demands the scene to be preserved as is, with the characters’ positions, expressions (as seen in the close-up), and the environment (city skyline, moon, stars) to remain consistent. Therefore, the layout, appearance, and relative positioning of all elements in the references must be maintained in the output video.
+
+Consistency score: **1/5**
+
+Reasoning: The output image is a close-up of the dog character with an exaggerated, mischievous expression, which is inconsistent with the reference where the dog is shown in a relaxed, neutral posture on the balcony with the crow. The prompt explicitly states that both characters are "relaxed" and the camera is in a "WIDE_SHOT," which is not preserved in the output. The output completely ignores the scene context, character positioning, and environment (cityscape, moon, balcony railing) from the reference, replacing it with a tight, emotionally charged close-up that contradicts the prompt’s requirements.
+
+<details>
+<summary>Full run log (click to expand)</summary>
+
+```text
+(.venv) root@63ae7a98371f:~/jadu_image_video_ai_demo# python scripts/run_gen_eval.py   --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9         https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec   --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b   --prompt "Cuddles and Koyal are relaxed. Both gaze out over the balcony, sitting closely but comfortably. Camera Angle: WIDE_SHOT"   --ref-coherence
+Loading model (this may take a moment)...
+2026-05-12 10:04:06,474 INFO qwen_vl - Loading Qwen3-VL processor: models/hf/Qwen__Qwen3-VL-4B-Instruct
+2026-05-12 10:04:07,134 INFO qwen_vl - Loading Qwen3-VL model: models/hf/Qwen__Qwen3-VL-4B-Instruct (device=cuda:0, dtype=torch.bfloat16)
+/root/jadu_image_video_ai_demo/.venv/lib/python3.11/site-packages/transformers/models/auto/modeling_auto.py:2284: FutureWarning: The class `AutoModelForVision2Seq` is deprecated and will be removed in v5.0. Please use `AutoModelForImageTextToText` instead.
+  warnings.warn(
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████| 2/2 [00:00<00:00, 22.11it/s]
+2026-05-12 10:04:09,217 INFO qwen_vl - Qwen3-VL Transformers model is ready on cuda:0.
+
+Checking whether reference consistency evaluation is required...
+2026-05-12 10:04:17,077 INFO qwen_vl - Built Qwen3 messages with 2 image(s) and 1 video.
+qwen-vl-utils using torchvision to read video.
+2026-05-12 10:04:33,613 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=13.422s
+Qwen3VL requires frame timestamps to construct prompts, but the `fps` of the input video could not be inferred. Probably `video_metadata` was missing from inputs and you passed pre-sampled frames. Defaulting to `fps=24`. Please provide `video_metadata` for more accurate results.
+2026-05-12 10:04:36,416 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+The following generation flags are not valid and may be ignored: [‘temperature’, ‘top_p’, ‘top_k’]. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+2026-05-12 10:04:42,720 INFO qwen_vl - Qwen3-VL inference completed.
+Consistency required: True
+Reasoning: The user prompt specifies that Cuddles and Koyal are relaxed and sitting closely but comfortably on the balcony, with the camera in a WIDE_SHOT. The references show the characters in this exact setup — Cuddles (the dog) and Koyal (the crow) seated on the balcony railing, facing the cityscape under a full moon. The prompt does not request any stylistic change or reinterpretation; it demands the scene to be preserved as is, with the characters’ positions, expressions (as seen in the close-up), and the environment (city skyline, moon, stars) to remain consistent. Therefore, the layout, appearance, and relative positioning of all elements in the references must be maintained in the output video.
+
+Running reference consistency scoring...
+2026-05-12 10:04:45,550 INFO qwen_vl - Built Qwen3 messages with 2 image(s) and 1 video.
+2026-05-12 10:04:53,611 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=5.461s
+2026-05-12 10:04:56,392 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+2026-05-12 10:05:02,716 INFO qwen_vl - Qwen3-VL inference completed.
+Consistency score: 1/5
+Reasoning: The output image (image 2) is a close-up of the dog character with an exaggerated, mischievous expression, which is inconsistent with the reference image (image 1) where the dog is shown in a relaxed, neutral posture on the balcony with the crow. The prompt explicitly states that both characters are "relaxed" and the camera is in a "WIDE_SHOT," which is not preserved in the output. The output image completely ignores the scene context, character positioning, and environment (cityscape, moon, balcony railing) from the reference, replacing it with a tight, emotionally charged close-up that contradicts the prompt’s requirements. The lighting, composition, and character interaction are all fundamentally altered, making it inconsistent in every major aspect.
+
+--- Result ---
+{
+  "ref_consistency": {
+    "required": true,
+    "reasoning": "The output image (image 2) is a close-up of the dog character with an exaggerated, mischievous expression, which is inconsistent with the reference image (image 1) where the dog is shown in a relaxed, neutral posture on the balcony with the crow. The prompt explicitly states that both characters are \"relaxed\" and the camera is in a \"WIDE_SHOT,\" which is not preserved in the output. The output image completely ignores the scene context, character positioning, and environment (cityscape, moon, balcony railing) from the reference, replacing it with a tight, emotionally charged close-up that contradicts the prompt’s requirements. The lighting, composition, and character interaction are all fundamentally altered, making it inconsistent in every major aspect.",
+    "score": 1
+  }
+}
+```
+
+</details>
+
+---
+
+**Demo 2 — consistency not required**
+
+**Inputs**
+
+<img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-a41f93e2-0728-4174-8b29-1da1cea72d92" width="220" />
+
+[Generated video](https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-284f7a85-7a45-4c4c-b8e6-c2290fe37f24)
+
+**Command**
+
+```bash
+python scripts/run_gen_eval.py \
+  --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-a41f93e2-0728-4174-8b29-1da1cea72d92 \
+  --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-284f7a85-7a45-4c4c-b8e6-c2290fe37f24 \
+  --prompt "Mohini pummels Vet with wild, flailing energy; both move in comic blur as onomatopoeic text appears with each blow. Camera Angle: INSERT_SHOT" \
+  --all
+```
+
+**Output**
+
+Consistency required: **False**
+
+Reasoning: The user prompt describes a dynamic action sequence involving "Mohini pummeling Vet with wild, flailing energy," which implies motion, blur, and onomatopoeic text appearing with each blow — elements not present in the static reference image. The reference image is a split-panel comic-style illustration with static poses, so the output video must depict motion and action, not preserve the static layout or appearance. Therefore, the reference is used as a stylistic guide (comic art, bold text, exaggerated expressions) rather than a literal template for unchanged elements.
+
+Reference consistency scoring not required — skipping.
+
+<details>
+<summary>Full run log (click to expand)</summary>
+
+```text
+(.venv) root@63ae7a98371f:~/jadu_image_video_ai_demo# python scripts/run_gen_eval.py \
+  --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-a41f93e2-0728-4174-8b29-1da1cea72d92 \
+  --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-284f7a85-7a45-4c4c-b8e6-c2290fe37f24 \
+  --prompt "Mohini pummels Vet with wild, flailing energy; both move in comic blur as onomatopoeic text appears with each blow. Camera Angle: INSERT_SHOT" \
+  --all
+Loading model (this may take a moment)...
+2026-05-12 10:09:01,650 INFO qwen_vl - Loading Qwen3-VL processor: models/hf/Qwen__Qwen3-VL-4B-Instruct
+2026-05-12 10:09:02,278 INFO qwen_vl - Loading Qwen3-VL model: models/hf/Qwen__Qwen3-VL-4B-Instruct (device=cuda:0, dtype=torch.bfloat16)
+/root/jadu_image_video_ai_demo/.venv/lib/python3.11/site-packages/transformers/models/auto/modeling_auto.py:2284: FutureWarning: The class `AutoModelForVision2Seq` is deprecated and will be removed in v5.0. Please use `AutoModelForImageTextToText` instead.
+  warnings.warn(
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards: 100%|███████████████████████████████████████████████████████████████████████| 2/2 [00:00<00:00, 22.67it/s]
+2026-05-12 10:09:04,156 INFO qwen_vl - Qwen3-VL Transformers model is ready on cuda:0.
+
+Checking whether reference consistency evaluation is required...
+2026-05-12 10:09:06,706 INFO qwen_vl - Built Qwen3 messages with 1 image(s) and 1 video.
+qwen-vl-utils using torchvision to read video.
+2026-05-12 10:09:22,939 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-284f7a85-7a45-4c4c-b8e6-c2290fe37f24’, total_frames=121, video_fps=24.0, time=14.819s
+Qwen3VL requires frame timestamps to construct prompts, but the `fps` of the input video could not be inferred. Probably `video_metadata` was missing from inputs and you passed pre-sampled frames. Defaulting to `fps=24`. Please provide `video_metadata` for more accurate results.
+2026-05-12 10:09:25,512 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+The following generation flags are not valid and may be ignored: [‘temperature’, ‘top_p’, ‘top_k’]. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+2026-05-12 10:09:31,045 INFO qwen_vl - Qwen3-VL inference completed.
+Consistency required: False
+Reasoning: The user prompt describes a dynamic action sequence involving "Mohini pummeling Vet with wild, flailing energy," which implies motion, blur, and onomatopoeic text appearing with each blow — elements not present in the static reference image. The reference image is a split-panel comic-style illustration with static poses (a man’s angry face and boots hitting a carpet), so the output video must depict motion and action, not preserve the static layout or appearance. Therefore, the reference is used as a stylistic guide (comic art, bold text, exaggerated expressions) rather than a literal template for unchanged elements.
+Reference consistency scoring not required — skipping.
 ```
 
 </details>
