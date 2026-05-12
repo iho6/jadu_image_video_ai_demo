@@ -1,12 +1,20 @@
-"""VLM helper utilities (Yes/No checks, parsing, etc.)."""
+"""VLM helper utilities (Yes/No checks, parsing, media type detection, etc.)."""
 
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 from qwen_vl import QwenVL
 from utils.generic_utils import eprint
+
+_VIDEO_EXTS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"}
+
+
+def detect_output_type(path: str) -> str:
+    """Return 'video' or 'image' based on the output path extension."""
+    return "video" if Path(path).suffix.lower() in _VIDEO_EXTS else "image"
 
 
 def extract_assistant_text(raw: object) -> str:
@@ -118,4 +126,45 @@ def parse_out_of_5_eval_output(text: str) -> dict[str, Any]:
         elif s.lower().startswith("reasoning:"):
             reasoning = s.split(":", 1)[1].strip()
     return {"score": score, "reasoning": reasoning}
+
+
+def parse_bullet_list(text: str) -> list[str]:
+    """Extract bullet-point items from a VLM response into a plain list of strings."""
+    items = []
+    for line in text.splitlines():
+        s = line.strip()
+        if s.startswith("- "):
+            items.append(s[2:].strip())
+        elif s.startswith("* "):
+            items.append(s[2:].strip())
+    return items
+
+
+def parse_artifact_eval_list(text: str) -> list[dict[str, Any]]:
+    """Parse artifact evaluation blocks from VLM response.
+
+    Expects repeating blocks of:
+        Artifact: <description>
+        Response: True/False
+        Reasoning: <reasoning>
+
+    Returns list of {"artifact": str, "desired": bool | None, "reasoning": str}.
+    """
+    results = []
+    current: dict[str, Any] = {}
+    for line in text.splitlines():
+        s = line.strip()
+        lower = s.lower()
+        if lower.startswith("artifact:"):
+            if current:
+                results.append(current)
+            current = {"artifact": s.split(":", 1)[1].strip(), "desired": None, "reasoning": ""}
+        elif lower.startswith("response:") and current:
+            val = s.split(":", 1)[1].strip().lower()
+            current["desired"] = val.startswith("true")
+        elif lower.startswith("reasoning:") and current:
+            current["reasoning"] = s.split(":", 1)[1].strip()
+    if current:
+        results.append(current)
+    return results
 

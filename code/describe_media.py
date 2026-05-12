@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from gen_eval import detect_output_type
+from utils.vlm_utils import detect_output_type
 from qwen_vl import QwenVL
 from utils.prompt_utils import DESCRIBE_MEDIA_PROMPT
 

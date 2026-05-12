@@ -2,23 +2,24 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from qwen_vl import QwenVL
+from describe_media import describe_media
 from utils.prompt_utils import (
     build_ref_comf_req_check_prompt,
     build_ref_consistency_eval_prompt,
     build_prompt_adherence_eval_prompt,
+    build_list_unprompted_prompt,
+    build_unprompted_artifact_list_eval_prompt,
 )
-from utils.vlm_utils import parse_yes_no_eval_output, parse_out_of_5_eval_output
-
-_VIDEO_EXTS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"}
-
-
-def detect_output_type(path: str) -> str:
-    """Return 'video' or 'image' based on the output path extension."""
-    return "video" if Path(path).suffix.lower() in _VIDEO_EXTS else "image"
+from utils.vlm_utils import (
+    detect_output_type,
+    parse_yes_no_eval_output,
+    parse_out_of_5_eval_output,
+    parse_bullet_list,
+    parse_artifact_eval_list,
+)
 
 
 
@@ -112,10 +113,75 @@ class PromptAdherenceEval:
             response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
         else:
             response = runner.vl_eval([*ref_paths, output_path], prompt_text)
-        return _parse_eval_score(response)
+        return parse_out_of_5_eval_output(response)
 
 
 class UnpromptedArtifactCheckEval:
-    """Checks for unprompted artifacts or anomalies in the generated output."""
+    """Checks for unprompted elements and artifacts in the generated output.
 
-    pass  # placeholder
+    Two-step: describe_media() first, then list_unprompted() uses that description
+    to enumerate output elements not mentioned in the user prompt.
+    """
+
+    def list_unprompted(
+        self,
+        runner: QwenVL,
+        ref_paths: list[str],
+        user_prompt: str,
+        output_path: str,
+    ) -> dict[str, Any]:
+        """List all output elements not specified in the user prompt.
+
+        Step 1: describe_media() — detailed description of the output.
+        Step 2: VLM call with description injected — produces bullet list.
+
+        Returns {"description": str, "unprompted_items": list[str]}.
+        """
+        output_type = detect_output_type(output_path)
+        n = len(ref_paths)
+
+        description = describe_media(runner, output_path)
+
+        prompt_text = build_list_unprompted_prompt(
+            user_prompt=user_prompt,
+            ref_idx_range=(1, n),
+            output_idx=n + 1,
+            output_type=output_type,
+            output_description=description,
+        )
+        if output_type == "video":
+            response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
+        else:
+            response = runner.vl_eval([*ref_paths, output_path], prompt_text)
+
+        return {
+            "description": description,
+            "unprompted_items": parse_bullet_list(response),
+        }
+
+    def unprompted_artifact_list_eval(
+        self,
+        runner: QwenVL,
+        ref_paths: list[str],
+        user_prompt: str,
+        output_path: str,
+        unprompted_items: list[str],
+    ) -> list[dict[str, Any]]:
+        """Evaluate each unprompted item as desired (True) or undesired (False).
+
+        Returns list of {"artifact": str, "desired": bool | None, "reasoning": str}.
+        """
+        output_type = detect_output_type(output_path)
+        n = len(ref_paths)
+        prompt_text = build_unprompted_artifact_list_eval_prompt(
+            user_prompt=user_prompt,
+            ref_idx_range=(1, n),
+            output_idx=n + 1,
+            output_type=output_type,
+            unprompted_items=unprompted_items,
+        )
+        if output_type == "video":
+            response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
+        else:
+            response = runner.vl_eval([*ref_paths, output_path], prompt_text)
+        return parse_artifact_eval_list(response)

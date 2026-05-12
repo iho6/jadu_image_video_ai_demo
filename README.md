@@ -197,13 +197,11 @@ Outputs:
 
 ### Generation eval CLI (`run_gen_eval.py`)
 
-Two-step VLM evaluation of a generated image or video against reference inputs:
-1. **Required check** — decides whether reference consistency should be expected given the prompt and references.
-2. **Consistency score** — if required, scores consistency 0–5 grounded by the check's reasoning.
+VLM evaluation of a generated image or video against reference inputs. Runs all evaluations by default; individual evals can be selected via flags.
 
 Output type (image vs video) is detected automatically from the `--gen-output` extension.
 
-#### Example: evaluate a generated image
+#### Example: run all evals on a generated image
 
 ```bash
 python scripts/run_gen_eval.py \
@@ -212,23 +210,27 @@ python scripts/run_gen_eval.py \
   --prompt "Put the person in image 1 on the sofa in image 2"
 ```
 
-#### Example: evaluate a generated video
+#### Example: run only prompt adherence on a generated video
 
 ```bash
 python scripts/run_gen_eval.py \
   --refs ref.png \
   --gen-output output.mp4 \
-  --prompt "Animate this character walking"
+  --prompt "Animate this character walking" \
+  --prompt-adherence
 ```
 
 - `--refs` — required; one or more reference image paths or URLs used during generation.
 - `--gen-output` — required; path or URL of the generated output (image or video) to evaluate.
 - `--prompt` — required; the user prompt that was used to produce the generated output (non-empty).
 - `--model-id` — optional; override model path or HF repo ID (default: QwenVL default).
+- `--ref-coherence` — run reference consistency evaluation.
+- `--prompt-adherence` — run prompt adherence evaluation.
+- `--non-prompt-artifact` — run unprompted artifact check (not yet implemented).
+- `--all` — run all evaluations (default when no eval flag is specified).
 
 Outputs:
-- Prints consistency required decision and reasoning to stdout.
-- If required, prints consistency score (0–5) and reasoning.
+- Prints per-eval decisions, scores, and reasoning to stdout as they complete.
 - Prints final JSON result to stdout:
   ```json
   {
@@ -236,9 +238,17 @@ Outputs:
       "response": true,
       "reasoning": "...",
       "score": 4
+    },
+    "prompt_adherence": {
+      "score": 3,
+      "reasoning": "..."
+    },
+    "non_prompt_artifact": {
+      "status": "not_implemented"
     }
   }
   ```
+- `ref_consistency.score` is only present when `response` is `true`.
 
 # Tests
 

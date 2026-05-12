@@ -207,7 +207,8 @@ def build_ref_comf_req_check_prompt(
     return (
         f"You are evaluating an {task_desc} with input references "
         f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt} "
-        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result.\n\n"
+        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
+        f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
         f"Think about the task the user is trying to accomplish via the prompt and references. "
         f"In this {task_desc}, is this a task where people/scenes/items in the reference should "
         f"keep layout/appearance consistent and unchanged? If specific items in the reference "
@@ -326,11 +327,13 @@ def build_prompt_adherence_eval_prompt(
     Returns 'score' (int 0-5) and 'reasoning' (str) when parsed.
     """
     task_desc = _GEN_TASK_DESC.get(output_type, _GEN_TASK_DESC["image"])
+    media_label = "video" if output_type == "video" else "image"
     ref_start, ref_end = ref_idx_range
     return (
         f"You are evaluating an {task_desc} with input references "
-        f"(idx {ref_start} to {ref_end}) and the following user prompt: {user_prompt}. "
-        f"(idx {output_idx}) is the output result from the generation task.\n\n"
+        f"(image {ref_start} to image {ref_end}) and the following user prompt: {user_prompt}. "
+        f"({media_label} {output_idx}), the {output_idx}th file, is the output result from the generation task. "
+        f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
         "Evaluate how well the output fulfills what the user prompt asked for. "
         "Consider every specific instruction, subject, action, placement, style change, "
         "or constraint mentioned in the prompt, and assess whether the output delivers "
@@ -361,4 +364,133 @@ def build_prompt_adherence_eval_prompt(
         "Reasoning: The prompt specified two subjects — the doctor placed on the sofa and the "
         "girl standing beside it. The doctor's placement is correct, but the girl from image 2 "
         "is entirely absent from the output. Half of the core instruction was not executed."
+    )
+
+
+def build_list_unprompted_prompt(
+    user_prompt: str,
+    ref_idx_range: tuple[int, int],
+    output_idx: int,
+    output_type: str,
+    output_description: str,
+) -> str:
+    """Build the VLM prompt that lists output elements not mentioned in the user prompt.
+
+    Dynamic fields: task description, ref index range, output index, user prompt,
+    and the pre-generated output description from describe_media().
+    Response is a bullet-point list only — no score, no reasoning.
+    """
+    task_desc = _GEN_TASK_DESC.get(output_type, _GEN_TASK_DESC["image"])
+    media_label = "video" if output_type == "video" else "image"
+    ref_start, ref_end = ref_idx_range
+    return (
+        f"You are evaluating an {task_desc} with input references "
+        f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt}, "
+        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
+        f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
+        "Look closely at all aspects of the output using the following description "
+        "of the output:\n"
+        f"{output_description}\n\n"
+        "Create a bullet point list of every aspect, action, character, detail, and "
+        "movement you notice in the output that is not explicitly mentioned or implied "
+        "by the user prompt. Include anything visually present that the user did not "
+        "ask for — whether it is a natural byproduct of the generation, an unintended "
+        "addition, or an artifact. Do not include things the prompt directly requested.\n\n"
+        "Respond with a bullet point list only. No preamble, no summary. "
+        "Refer to the examples below for format:\n\n"
+        "User Prompt: Turn the person in the first reference image into a cartoon character\n"
+        "Output Description: A cartoon-style illustration of a young woman with blonde hair "
+        "and blue eyes wearing a blue shirt. She is smiling slightly and standing in front "
+        "of a pale yellow background with a faint drop shadow behind her figure.\n"
+        "Response:\n"
+        "- Pale yellow background\n"
+        "- Faint drop shadow behind the figure\n"
+        "- Slight smile expression on the character's face\n"
+        "- Standing pose\n\n"
+        "User Prompt: Put the person in image 1 on the sofa in the room shown in image 3, "
+        "and the person in image 2 standing beside the sofa.\n"
+        "Output Description: A composite scene showing a cartoon male doctor in a white lab "
+        "coat seated on a green sofa in a realistic lab setting. A cartoon girl with long "
+        "black curly hair stands to the right of the sofa. The lab table in the background "
+        "is empty. A ceiling light casts a warm tone over the scene. The doctor has his arms "
+        "resting on his knees and is looking slightly downward.\n"
+        "Response:\n"
+        "- Empty lab table in the background\n"
+        "- Ceiling light casting a warm tone over the scene\n"
+        "- Doctor's arms resting on his knees\n"
+        "- Doctor looking slightly downward\n"
+        "- Warm color tone across the scene"
+    )
+
+
+def build_unprompted_artifact_list_eval_prompt(
+    user_prompt: str,
+    ref_idx_range: tuple[int, int],
+    output_idx: int,
+    output_type: str,
+    unprompted_items: list[str],
+) -> str:
+    """Build the VLM prompt that evaluates each unprompted item as desired or undesired.
+
+    Dynamic fields: task description, ref index range, output index, user prompt,
+    and the pre-generated list of unprompted items from list_unprompted().
+    Response is one structured block per item — Artifact / Response / Reasoning.
+    """
+    task_desc = _GEN_TASK_DESC.get(output_type, _GEN_TASK_DESC["image"])
+    media_label = "video" if output_type == "video" else "image"
+    ref_start, ref_end = ref_idx_range
+    items_block = "\n".join(f"- {item}" for item in unprompted_items)
+    return (
+        f"You are evaluating an {task_desc} with input references "
+        f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt}, "
+        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
+        f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
+        "The following is a list of elements observed in the output that were not explicitly "
+        "mentioned in the user prompt:\n"
+        f"{items_block}\n\n"
+        "For each item, evaluate whether it is a desired artifact (True) or an undesired "
+        "artifact (False). A desired artifact (True) is a natural byproduct of the generation, "
+        "an expected addition, or an acceptable creative decision given the prompt and context. "
+        "An undesired artifact (False) is a real error, anomaly, or unintended addition that "
+        "detracts from the output quality.\n\n"
+        "Respond with one block per item in exactly this format. "
+        "Refer to the examples below for format:\n\n"
+        "User Prompt: The woman in the car talking to herself\n"
+        "Unprompted items:\n"
+        "- Car gliding down the street\n"
+        "- Faint shadow beneath the car\n\n"
+        "Artifact: Car gliding down the street\n"
+        "Response: False\n"
+        "Reasoning: The prompt focuses solely on the woman talking; no vehicle movement was "
+        "requested. The car moving is an unintended addition to the scene.\n\n"
+        "Artifact: Faint shadow beneath the car\n"
+        "Response: True\n"
+        "Reasoning: A ground shadow under a vehicle is a natural lighting byproduct in realistic "
+        "scenes. It does not conflict with the prompt or references.\n\n"
+        "User Prompt: Turn the person in the reference image into a cartoon character\n"
+        "Unprompted items:\n"
+        "- Background changed from white to blue gradient\n"
+        "- Character shown half-body with arms raised; reference showed full body with hands in pockets\n"
+        "- Slight warping around the left hand\n\n"
+        "Artifact: Background changed from white to blue gradient\n"
+        "Response: False\n"
+        "Reasoning: The prompt requested a style conversion only. The background color and "
+        "gradient were not asked for and represent an unintended modification.\n\n"
+        "Artifact: Character shown half-body with arms raised; reference showed full body with hands in pockets\n"
+        "Response: False\n"
+        "Reasoning: The reference shows a full-body standing pose with hands in pockets. The "
+        "output drastically changes both the framing and the pose without any instruction to do "
+        "so. This is not a natural byproduct of a style conversion.\n\n"
+        "Artifact: Slight warping around the left hand\n"
+        "Response: False\n"
+        "Reasoning: The hand warping is a generation error not present in the reference and not "
+        "implied by the prompt. It is an unintended deformity that degrades output quality.\n\n"
+        "User Prompt: Put the doctor on the sofa in the room shown in image 2\n"
+        "Unprompted items:\n"
+        "- Doctor's arms resting at sides rather than raised as in reference\n\n"
+        "Artifact: Doctor's arms resting at sides rather than raised as in reference\n"
+        "Response: True\n"
+        "Reasoning: The reference shows the doctor in a T-pose with arms raised. When placed "
+        "in a seated position as prompted, arms lowering and resting is a natural consequence "
+        "of the posture change. This is an expected adaptation, not an error."
     )
