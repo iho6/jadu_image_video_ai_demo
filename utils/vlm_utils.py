@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+from typing import Any
+
 from qwen_vl import QwenVL
 from utils.generic_utils import eprint
 
@@ -87,4 +90,32 @@ def character_fullbody_check(*, runner: QwenVL, image_source: str, prompt: str) 
     if text == "no":
         return False
     raise ValueError(f"Full-body check must return 'Yes' or 'No'. Got: {raw!r}")
+
+
+def parse_yes_no_eval_output(text: str) -> dict[str, Any]:
+    """Extract response (bool | None) and reasoning (str) from a Yes/No VLM eval response."""
+    response: bool | None = None
+    reasoning = ""
+    for line in text.splitlines():
+        s = line.strip()
+        if s.lower().startswith("response:"):
+            response = s.split(":", 1)[1].strip().lower().startswith("yes")
+        elif s.lower().startswith("reasoning:"):
+            reasoning = s.split(":", 1)[1].strip()
+    return {"response": response, "reasoning": reasoning}
+
+
+def parse_out_of_5_eval_output(text: str) -> dict[str, Any]:
+    """Extract score (int 0-5 | None) and reasoning (str) from a scored VLM eval response."""
+    score: int | None = None
+    reasoning = ""
+    for line in text.splitlines():
+        s = line.strip()
+        if s.lower().startswith("response:"):
+            m = re.match(r"(\d)/5", s.split(":", 1)[1].strip())
+            if m:
+                score = int(m.group(1))
+        elif s.lower().startswith("reasoning:"):
+            reasoning = s.split(":", 1)[1].strip()
+    return {"score": score, "reasoning": reasoning}
 
