@@ -487,6 +487,8 @@ python services/img_edit_service/img_edit.py --images $VET_IMG $ROOM_IMG --promp
 
 ## Eval
 
+`scripts/run_gen_eval.py` — VLM evaluation of a generated output against reference inputs. Flags: `--ref-coherence`, `--prompt-adherence`, `--non-prompt-artifact`, `--question`, `--all` (default), `--debug`.
+
 ### Unprompted Artifact Check (`--non-prompt-artifact` · `--question`)
 
 VLM-based check that identifies output elements not specified in the user prompt. Two-step pipeline: first generate a detailed description of the output, then use that description to list what appeared that wasn't asked for. Results branch into two uses:
@@ -612,6 +614,14 @@ Ensure your output is a single question sentence only — no preamble, no reason
 
 **Demo**
 
+**Inputs**
+
+<img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-7fbd52ae-62cd-49f9-bf75-65588a7a8120" width="220" />
+
+[Generated video](https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-39131511-fb32-4704-8e9a-30968dca4539)
+
+**Command**
+
 ```bash
 python scripts/run_gen_eval.py \
   --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-7fbd52ae-62cd-49f9-bf75-65588a7a8120 \
@@ -619,6 +629,8 @@ python scripts/run_gen_eval.py \
   --prompt "A stylish woman with a sleek bob haircut and dark sunglasses sits in the driver's seat of a car at night. She wears a sharp black suit and a ruby choker. Minimal motion, smooth and cinematic." \
   --non-prompt-artifact --debug --question
 ```
+
+**Output**
 
 **Unprompted artifacts (9)**
 
