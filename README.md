@@ -1590,7 +1590,7 @@ Reasoning: The user prompt was "Put vet in room." The output image (image 3) cor
 
 `scripts/run_qwen_chat.py` — multi-turn conversational assistant for directing the generative AI pipeline. Accepts image input via bracket syntax (`[path_or_url] message`), maintains turn history, and exports session transcripts. Slash commands: `/quit`, `/reset`, `/export`, `/help`.
 
-Didn't have time to implement tool calling by swapping Qwen3-VL for Qwen3 (text-only); the system prompt instructs the model to respond with exact CLI commands for now.
+Didn't have time to implement tool calling by swapping Qwen3-VL for Qwen3 (tool-calling agent); the system prompt instructs the model to respond with exact CLI commands for now.
 
 <details>
 <summary>System prompt (click to expand)</summary>
