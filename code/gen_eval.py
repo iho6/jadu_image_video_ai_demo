@@ -12,6 +12,7 @@ from utils.prompt_utils import (
     build_prompt_adherence_eval_prompt,
     build_list_unprompted_prompt,
     build_unprompted_artifact_list_eval_prompt,
+    build_format_unprompted_question_prompt,
 )
 from utils.vlm_utils import (
     detect_output_type,
@@ -19,6 +20,7 @@ from utils.vlm_utils import (
     parse_out_of_5_eval_output,
     parse_bullet_list,
     parse_artifact_eval_list,
+    extract_assistant_text,
 )
 
 
@@ -185,3 +187,33 @@ class UnpromptedArtifactCheckEval:
         else:
             response = runner.vl_eval([*ref_paths, output_path], prompt_text)
         return parse_artifact_eval_list(response)
+
+    def format_unprompted_as_questions(
+        self,
+        runner: QwenVL,
+        ref_paths: list[str],
+        user_prompt: str,
+        output_path: str,
+        unprompted_items: list[str],
+    ) -> list[str]:
+        """Reformat each unprompted item as a 'Did you want...' question.
+
+        One VLM call per item. Returns questions in the same order as unprompted_items.
+        """
+        output_type = detect_output_type(output_path)
+        n = len(ref_paths)
+        questions = []
+        for item in unprompted_items:
+            prompt_text = build_format_unprompted_question_prompt(
+                user_prompt=user_prompt,
+                ref_idx_range=(1, n),
+                output_idx=n + 1,
+                output_type=output_type,
+                item=item,
+            )
+            if output_type == "video":
+                response = runner.vl_eval(ref_paths, prompt_text, video_source=output_path)
+            else:
+                response = runner.vl_eval([*ref_paths, output_path], prompt_text)
+            questions.append(extract_assistant_text(response).strip())
+        return questions

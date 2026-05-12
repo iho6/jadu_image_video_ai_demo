@@ -23,7 +23,7 @@ for _p in (str(_ROOT), str(_ROOT / "code")):
         sys.path.insert(0, _p)
 
 from qwen_vl import QwenVL          # noqa: E402
-from gen_eval import RefConsistencyEval, PromptAdherenceEval  # noqa: E402
+from gen_eval import RefConsistencyEval, PromptAdherenceEval, UnpromptedArtifactCheckEval  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
 
@@ -80,12 +80,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--non-prompt-artifact",
         action="store_true",
-        help="Run unprompted artifact check (not yet implemented).",
+        help="Run unprompted artifact check.",
+    )
+    parser.add_argument(
+        "--question",
+        action="store_true",
+        help="List unprompted elements and reformat each as a 'Did you want...' question.",
     )
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Run all evaluations (default when no eval flag is specified).",
+        help="Run all evaluations (default when no eval flag is specified). Does not include --question.",
     )
     args = parser.parse_args(argv)
     if not args.prompt.strip():
@@ -100,10 +105,11 @@ def main(argv: list[str] | None = None) -> None:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
-    run_all = args.all or not any([args.ref_coherence, args.prompt_adherence, args.non_prompt_artifact])
+    run_all = args.all or not any([args.ref_coherence, args.prompt_adherence, args.non_prompt_artifact, args.question])
     run_ref = run_all or args.ref_coherence
     run_pa  = run_all or args.prompt_adherence
     run_npa = run_all or args.non_prompt_artifact
+    run_question = args.question
 
     print("Loading model (this may take a moment)...")
     kwargs: dict = {}
@@ -113,6 +119,7 @@ def main(argv: list[str] | None = None) -> None:
 
     evaluator_ref = RefConsistencyEval()
     evaluator_pa  = PromptAdherenceEval()
+    evaluator_npa = UnpromptedArtifactCheckEval()
     result: dict = {}
 
     # ── ref consistency ───────────────────────────────────────────────────────
@@ -171,8 +178,68 @@ def main(argv: list[str] | None = None) -> None:
 
     # ── non-prompt artifact ───────────────────────────────────────────────────
     if run_npa:
-        print("\nNon-prompt artifact check: not yet implemented — skipping.")
-        result["non_prompt_artifact"] = {"status": "not_implemented"}
+        print("\nListing unprompted elements...")
+        try:
+            unprompted = evaluator_npa.list_unprompted(
+                runner=runner,
+                ref_paths=args.refs,
+                user_prompt=args.prompt,
+                output_path=args.gen_output,
+            )
+        except (ValueError, RuntimeError) as exc:
+            print(f"Error during unprompted listing: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
+
+        items = unprompted["unprompted_items"]
+        print(f"Found {len(items)} unprompted element(s). Evaluating...")
+        try:
+            npa_result = evaluator_npa.unprompted_artifact_list_eval(
+                runner=runner,
+                ref_paths=args.refs,
+                user_prompt=args.prompt,
+                output_path=args.gen_output,
+                unprompted_items=items,
+            )
+        except (ValueError, RuntimeError) as exc:
+            print(f"Error during artifact eval: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
+
+        for entry in npa_result:
+            flag = "desired" if entry["desired"] else "undesired"
+            print(f"  [{flag}] {entry['artifact']} — {entry['reasoning']}")
+        result["non_prompt_artifact"] = {"items": npa_result}
+
+    # ── question mode ─────────────────────────────────────────────────────────
+    if run_question:
+        print("\nListing unprompted elements...")
+        try:
+            unprompted = evaluator_npa.list_unprompted(
+                runner=runner,
+                ref_paths=args.refs,
+                user_prompt=args.prompt,
+                output_path=args.gen_output,
+            )
+        except (ValueError, RuntimeError) as exc:
+            print(f"Error during unprompted listing: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
+
+        items = unprompted["unprompted_items"]
+        print(f"Found {len(items)} unprompted element(s). Generating questions...")
+        try:
+            questions = evaluator_npa.format_unprompted_as_questions(
+                runner=runner,
+                ref_paths=args.refs,
+                user_prompt=args.prompt,
+                output_path=args.gen_output,
+                unprompted_items=items,
+            )
+        except (ValueError, RuntimeError) as exc:
+            print(f"Error during question formatting: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
+
+        result["questions"] = questions
+        for i, q in enumerate(questions, 1):
+            print(f"  {i}. {q}")
 
     print("\n--- Result ---")
     print(json.dumps(result, indent=2))

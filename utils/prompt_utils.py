@@ -494,3 +494,44 @@ def build_unprompted_artifact_list_eval_prompt(
         "in a seated position as prompted, arms lowering and resting is a natural consequence "
         "of the posture change. This is an expected adaptation, not an error."
     )
+
+
+def build_format_unprompted_question_prompt(
+    user_prompt: str,
+    ref_idx_range: tuple[int, int],
+    output_idx: int,
+    output_type: str,
+    item: str,
+) -> str:
+    """Build the VLM prompt that rewrites a single unprompted item as a user-facing question.
+
+    Dynamic fields: task description, ref index range, output index, user prompt, single item.
+    Response is one plain question string — no prefix, no reasoning.
+    """
+    task_desc = _GEN_TASK_DESC.get(output_type, _GEN_TASK_DESC["image"])
+    media_label = "video" if output_type == "video" else "image"
+    ref_start, ref_end = ref_idx_range
+    return (
+        f"You are evaluating an {task_desc} with input references "
+        f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt}, "
+        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
+        f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
+        "The following element appeared in the output but was not explicitly mentioned in the "
+        f"user prompt:\n{item}\n\n"
+        "Rewrite this element as a single, concise 'Did you want...' question addressed to the "
+        "user. The question should clarify whether the element was intentional or whether the "
+        "user would have preferred it to stay as it was in the original reference, or be done some other way. "
+        "Output only the question — no preamble, no reasoning, nothing else.\n\n"
+        "Refer to examples below for format:\n\n"
+        "User Prompt: Turn the person in the reference image into a cartoon character\n"
+        "Item: Background switched from white to yellow\n"
+        "Question: Did you want the background to be switched to yellow, or did you want it to "
+        "stay the same as in the original reference?\n\n"
+        "User Prompt: The woman in the car talking to herself\n"
+        "Item: Car gliding down the street\n"
+        "Question: Did you want the car to be moving, or did you want it to remain stationary?\n\n"
+        "User Prompt: Turn the person in the reference image into a cartoon character\n"
+        "Item: Character shown half-body with arms raised; reference showed full body with hands in pockets\n"
+        "Question: Did you want the character to be cropped to half-body with arms raised, or did "
+        "you want the full-body standing pose from the reference to be preserved?"
+    )
