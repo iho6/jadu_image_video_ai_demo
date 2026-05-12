@@ -14,6 +14,7 @@
 - [Eval](#eval)
   - [Unprompted Artifact Check](#unprompted-artifact-check---non-prompt-artifact--question)
   - [Reference Coherence Check](#reference-coherence-check---ref-coherence)
+  - [Prompt Adherence](#prompt-adherence---prompt-adherence)
 
 ## Quickstart (recommended)
 
@@ -541,8 +542,9 @@ Uses the output description from `describe_media()` injected into the prompt to 
 
 ```
 You are evaluating an {task_desc} with input references (image 1 to image N),
-the following user prompt: {user_prompt}, and ({media_label} N+1), the N+1th file,
-being the output result. Again, {media_label} N+1 is the output being evaluated.
+the following user prompt: {user_prompt}, and ({media_label} N+1), the generated
+{media_label}, being the output result. Again, {media_label} N+1 is the output
+being evaluated.
 
 Look closely at all aspects of the output using the following description of the output:
 {output_description}
@@ -556,8 +558,8 @@ in the user prompt. Apply these rules strictly:
 - Do NOT list elements already visible in the reference image(s).
 - Do NOT list elements explicitly requested in the user prompt.
 - Do NOT repeat similar observations — each item must be meaningfully distinct.
-- Skip fine-grained detail unless they represent a clear departure from what was
-  prompted or referenced.
+- Skip fine-grained detail (textures, minor lighting variation) unless they represent
+  a clear departure from what was prompted or referenced.
 - Return fewer than 10 items. If there aren't any unprompted artifacts, you don't
   have to return anything.
 
@@ -567,6 +569,30 @@ Pay close attention to:
 - Background motion or animation not described in the prompt
 
 Respond with a bullet point list only. Each item starts with '- '.
+Ensure your output contains only bullet point items — no preamble, no summary, no trailing text.
+Refer to the examples below for format:
+
+User Prompt: Turn the person in the first reference image into a cartoon character
+Reference: woman with blonde hair, blue eyes, blue shirt, standing against white background
+Output Description: A cartoon-style illustration of a young woman with blonde hair
+and blue eyes wearing a blue shirt. She is smiling slightly and standing in front
+of a pale yellow background with a faint drop shadow behind her figure.
+Response:
+- Background changed from white to pale yellow
+- Drop shadow added behind the figure
+- Slight smile (reference expression was neutral)
+
+User Prompt: Put the person in image 1 on the sofa in the room shown in image 3,
+and the person in image 2 standing beside the sofa.
+Reference: doctor in white lab coat; girl with curly black hair; lab room with green sofa and cluttered table
+Output Description: A composite scene showing a cartoon male doctor in a white lab
+coat seated on a green sofa in a realistic lab setting. A cartoon girl with long
+black curly hair stands to the right of the sofa. The lab table in the background
+is empty. A ceiling light casts a warm tone over the scene. The doctor has his arms
+resting on his knees and is looking slightly downward.
+Response:
+- Lab table is empty (reference showed it cluttered)
+- Warm color tone cast by ceiling light (not in reference or prompt)
 ```
 
 ---
@@ -577,18 +603,54 @@ One VLM call per item.
 
 ```
 You are evaluating an {task_desc} with input references (image 1 to image N),
-the following user prompt: {user_prompt}, and ({media_label} N+1), being the output.
+the following user prompt: {user_prompt}, and ({media_label} N+1), the generated
+{media_label}, being the output result. Again, {media_label} N+1 is the output
+being evaluated.
 
 The following element was observed in the output but was not explicitly mentioned
 in the user prompt:
 {item}
 
-Evaluate whether this element is a desired artifact (True) or an undesired artifact (False).
-A desired artifact (True) is a natural byproduct of the generation, an expected addition,
-or an acceptable creative decision given the prompt and context. An undesired artifact (False)
-is a real error, anomaly, or unintended addition that detracts from the output quality.
+Evaluate whether this element is a desired artifact (True) or an undesired artifact
+(False). A desired artifact (True) is a natural byproduct of the generation, an
+expected addition, or an acceptable creative decision given the prompt and context.
+An undesired artifact (False) is a real error, anomaly, or unintended addition that
+detracts from the output quality.
 
-Ensure the format 'Response: True or False' and 'Reasoning: str'.
+Ensure the format 'Response: True or False' and 'Reasoning: str'. Do not include an
+'Artifact:' line. Refer to the examples below:
+
+User Prompt: The woman in the car talking to herself
+Item: Faint shadow beneath the car
+Response: True
+Reasoning: A ground shadow under a vehicle is a natural lighting byproduct in realistic
+scenes. It does not conflict with the prompt or references.
+
+User Prompt: The woman in the car talking to herself
+Item: Car gliding down the street
+Response: False
+Reasoning: The prompt focuses solely on the woman talking; no vehicle movement was
+requested. The car moving is an unintended addition to the scene.
+
+User Prompt: Turn the person in the reference image into a cartoon character
+Item: Background changed from white to blue gradient
+Response: False
+Reasoning: The prompt requested a style conversion only. The background color and
+gradient were not asked for and represent an unintended modification.
+
+User Prompt: Turn the person in the reference image into a cartoon character
+Item: Character shown half-body with arms raised; reference showed full body with hands in pockets
+Response: False
+Reasoning: The reference shows a full-body standing pose with hands in pockets. The
+output drastically changes both the framing and the pose without any instruction to do
+so. This is not a natural byproduct of a style conversion.
+
+User Prompt: Put the doctor on the sofa in the room shown in image 2
+Item: Doctor's arms resting at sides rather than raised as in reference
+Response: True
+Reasoning: The reference shows the doctor in a T-pose with arms raised. When placed
+in a seated position as prompted, arms lowering and resting is a natural consequence
+of the posture change. This is an expected adaptation, not an error.
 ```
 
 ---
@@ -599,16 +661,35 @@ One VLM call per item.
 
 ```
 You are evaluating an {task_desc} with input references (image 1 to image N),
-the following user prompt: {user_prompt}, and ({media_label} N+1), being the output.
+the following user prompt: {user_prompt}, and ({media_label} N+1), the generated
+{media_label}, being the output result. Again, {media_label} N+1 is the output
+being evaluated.
 
 The following element appeared in the output but was not explicitly mentioned in
 the user prompt:
 {item}
 
-Rewrite this element as a single, concise 'Did you want...' question addressed to the user.
-The question should clarify whether the element was intentional or whether the user would
-have preferred it to stay as it was in the original reference, or be done some other way.
-Ensure your output is a single question sentence only — no preamble, no reasoning, nothing else.
+Rewrite this element as a single, concise 'Did you want...' question addressed to the
+user. The question should clarify whether the element was intentional or whether the
+user would have preferred it to stay as it was in the original reference, or be done
+some other way. Ensure your output is a single question sentence only — no preamble,
+no reasoning, nothing else.
+
+Refer to examples below for format:
+
+User Prompt: Turn the person in the reference image into a cartoon character
+Item: Background switched from white to yellow
+Question: Did you want the background to be switched to yellow, or did you want it to
+stay the same as in the original reference?
+
+User Prompt: The woman in the car talking to herself
+Item: Car gliding down the street
+Question: Did you want the car to be moving, or did you want it to remain stationary?
+
+User Prompt: Turn the person in the reference image into a cartoon character
+Item: Character shown half-body with arms raised; reference showed full body with hands in pockets
+Question: Did you want the character to be cropped to half-body with arms raised, or did
+you want the full-body standing pose from the reference to be preserved?
 ```
 
 </details>
@@ -1108,21 +1189,57 @@ Inputs: ref image(s)  ·  user prompt  ·  generated output
 
 ```
 You are evaluating an {task_desc} with input references (image 1 to image N),
-the following user prompt: {user_prompt}, and ({media_label} N+1), being the output.
+the following user prompt: {user_prompt}, and ({media_label} N+1), the generated
+{media_label}, being the output result. Again, {media_label} N+1 is the output
+being evaluated.
 
 Think about the task the user is trying to accomplish via the prompt and references.
-Is this a task where people/scenes/items in the reference should keep layout/appearance
-consistent and unchanged? If specific items in the reference should appear the same in
-the output, Response: Yes. Else if the user is using the reference vaguely as a stylistic
-or concept guide, without specific things needing to look exactly the same, Response: No.
+In this {task_desc}, is this a task where people/scenes/items in the reference should
+keep layout/appearance consistent and unchanged? If specific items in the reference
+should appear the same in the output, Response: Yes. Else if the user is using the
+reference vaguely as a stylistic or concept guide, without specific things needing to
+look exactly the same as in the reference, then Response: No.
 
 Note: even if the output is a video with motion, action, or style change, if the same
 character or person from the reference appears in the output, their identity should still
 be checked for consistency — face, distinguishing features, clothing, and overall
-appearance. Only respond No if the reference is used purely as a stylistic or thematic
-guide with no specific characters or elements carried over.
+appearance. Motion and style transformation do not exempt a character from identity
+consistency. Only respond No if the reference is used purely as a stylistic or thematic
+guide with no specific characters or elements carried over into the output.
 
-Ensure the format ‘Response: Yes or No’ and ‘Reasoning: str’.
+In addition to Yes/No response, return a Reasoning why, based on the user prompt,
+references may/may not expect to be consistent in the output. If consistency is
+expected, provide a brief description of what specific things from the reference are
+expected to be consistent. Ensure the format ‘Response: Yes or No’ and ‘Reasoning: str’.
+Refer to examples below:
+
+User Prompt: Turn the person in the first reference image into a cartoon character
+Image Ref (via description only): <girl with blonde hair, blue eyes, blue shirt>
+Response: Yes
+Reasoning: while the user doesn’t expect the person in the reference image to be kept
+exactly the same, since the prompt demands changing of style, key traits, apperance,
+pose, and layout of the original reference such as the girl’s blonde hair, blue eyes,
+and blue shirt, should be kept the same.
+
+User Prompt: Use this image as a style reference and output a city scene in the same style.
+Image Ref (via description only): <80s Japanese city pop album cover with neon,
+vibrantly-colored, sunset beach scene.>
+Response: No
+Reasoning: The user is using the reference image loosely for a style transfer task, so
+no specific item, person, or layout from the reference needs to be preserved.
+
+User Prompt: Put the person in image 1 on the sofa in the room shown in image 3, and
+the person in image 2 standing beside the sofa.
+Image Ref (via description only, in that order): <a cartoon character of an middle-aged
+male doctor in a white lab coat>, <a cartoon character of a girl with long curly black
+hair>, <a realistic image of a lab with table filled with equipments and a green sofa
+against the right wall>
+Response: Yes
+Reasoning: This task ask for the cartoon characters in image 1 and 2 to be edited
+directly into reference image 3, meaning that all visible aspect of the references
+should be kept the same. The appearance of the girl, the doctor, the distinct stylistic
+difference between the environment and characters, and the details of items on the table
+in the lab should be kept consistent.
 ```
 
 ---
@@ -1130,21 +1247,58 @@ Ensure the format ‘Response: Yes or No’ and ‘Reasoning: str’.
 **`ref_consistency_eval()` — score consistency 0–5**
 
 ```
-You are evaluating an {task_desc} with input references (image 1 to image N)
-and the following user prompt: {user_prompt}. ({media_label} N+1) is the output result.
+You are evaluating an {task_desc} with input image 1 to image N being the input
+references used for the generation task. This is the user’s prompt: {user_prompt}.
+({media_label} N+1), the generated {media_label}, is the output result from the
+generation task. Again, {media_label} N+1 is the outputted result from the previous
+generation task that you are evaluating against the reference(s) and the prompt.
 
-In this task, items in the reference should remain consistent. Here is an analysis
-of what should be consistent by another evaluator:
+In this image-editing/ref-to-video task, items in the reference should remain
+consistent. Here is an analysis of what should be consistent by another evaluator:
 {prior_analysis}
 
 Based on what should be kept consistent, evaluate every aspect of the appearance,
 layout, proportion, lighting/color, and other aspects between input reference(s) and
-output to give a score out of 5:
-5/5 — perfect consistency; 4/5 — mild, unnoticeable inconsistencies;
-3/5 — noticeable inconsistencies present; 2/5 — many noticeable inconsistencies;
-1/5 — mostly inconsistent; 0/5 — completely inconsistent.
+output img/video to give a score out of 5, 5/5 being perfect consistency across
+elements; 4/5 being mild, unnoticeable inconsistencies; 3/5 being noticeable
+inconsistencies present; 2/5 being many noticeable inconsistencies; 1/5 being output
+is mostly inconsistent with the references; 0/5 is completely inconsistent.
 
-Ensure the format ‘Response: X/5’ and ‘Reasoning: str’.
+Also return a ‘Reasoning’ for the evaluation. Ensure the format ‘Response: X/5’ and
+‘Reasoning: str’. Refer to below for example format:
+
+User Prompt: Turn the person in the first reference image into a cartoon character
+Image Ref (via description only): <girl with blonde hair, blue eyes, blue shirt>
+Output: <cartoon character, girl with blonde hair, slightly darker blue eyes, blue shirt>
+Prior Evaluator Analysis: while the user doesn’t expect the person in the reference
+image to be kept exactly the same, since the prompt demands changing of style, key
+traits, apperance, pose, and layout of the original reference such as the girl’s blonde
+hair, blue eyes, and blue shirt, should be kept the same.
+Response: 4/5
+Reasoning: In the acceptable realm of a style change, the character’s features are
+mostly consistent, from clothing, age, hairstyle, color, and proportion. However, the
+color of the eye seems to be slightly off, though not noticeably. So 4/5.
+
+User Prompt: Put the person in image 1 on the sofa in the room shown in image 3, and
+the person in image 2 standing beside the sofa.
+Image Ref (via description only, in that order): <a cartoon character of an middle-aged
+male doctor in a white lab coat with stethoscope>, <a cartoon character of a girl with
+long curly black hair>, <a realistic image of a lab with table filled with equipments
+and a green sofa against the right wall>
+Output: <cartoon male doctor in white lab coat sitting on realistic couch, legs
+outstretched on the green sofa, girl with long curly black hair standing besides it,
+empty table in the lab.>
+Prior Evaluator Analysis: This task ask for the cartoon characters in image 1 and 2 to
+be edited directly into reference image 3, meaning that all visible aspect of the
+references should be kept the same. The appearance of the girl, the doctor, the
+distinct stylistic difference between the environment and characters, and the details
+of items on the table in the lab should be kept consistent.
+Response: 3/5
+Reasoning: Items in the lab should be kept consistent, but the previously cluttered
+table is now empty. There is a slight deformation with the doctor character because the
+cartoon leg is longer in seating position than in the reference. Otherwise, the doctor’s
+face and the girls’ whole appearance are consistent, and the stylistic differentiation
+between backdrop and character is kept the same.
 ```
 
 </details>
@@ -1155,7 +1309,7 @@ Ensure the format ‘Response: X/5’ and ‘Reasoning: str’.
 
 <img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9" width="220" />
 
-**Inputs**
+**Output**
 <img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec" width="220" />
 
 
@@ -1282,6 +1436,133 @@ The following generation flags are not valid and may be ignored: [‘temperature
 Consistency required: False
 Reasoning: The user prompt describes a dynamic action sequence involving "Mohini pummeling Vet with wild, flailing energy," which implies motion, blur, and onomatopoeic text appearing with each blow — elements not present in the static reference image. The reference image is a split-panel comic-style illustration with static poses (a man’s angry face and boots hitting a carpet), so the output video must depict motion and action, not preserve the static layout or appearance. Therefore, the reference is used as a stylistic guide (comic art, bold text, exaggerated expressions) rather than a literal template for unchanged elements.
 Reference consistency scoring not required — skipping.
+```
+
+</details>
+
+---
+
+### Prompt Adherence (`--prompt-adherence`)
+
+Single-step eval that scores how well the generated output fulfills the user prompt (0–5). Always runs — no required-check gate. Considers every specific instruction, subject, action, placement, style, or constraint mentioned in the prompt.
+
+**Pipeline**
+
+```
+Inputs: ref image(s)  ·  user prompt  ·  generated output
+                              │
+                              ▼
+               prompt_adherence_eval()
+                              │
+                         score 0–5 + reasoning
+```
+
+<details>
+<summary>Prompts (click to expand)</summary>
+
+**`prompt_adherence_eval()` — score 0–5**
+
+```
+You are evaluating an {task_desc} out of 5 with input references
+(image 1 to image N) and the following user prompt: {user_prompt}.
+({media_label} N+1), the generated {media_label}, is the output result from the
+generation task. Again, {media_label} N+1 is the output being evaluated.
+
+Evaluate how well the output fulfills what the user prompt asked for out of 5.
+Consider every specific instruction, subject, action, placement, style change,
+or constraint mentioned in the prompt, and assess whether the output delivers
+on each one.
+
+Give a score out of 5: 5/5 means the output fully accomplishes every element
+of the prompt; 4/5 means the output mostly fulfills the prompt with only minor
+omissions or slight deviations; 3/5 means the output partially fulfills the
+prompt with noticeable missing elements or incorrect execution; 2/5 means the
+output only addresses a small part of what was asked; 1/5 means the output
+barely addresses the prompt; 0/5 means the output completely ignores the prompt.
+
+Also return a 'Reasoning' that identifies specifically what was and wasn't
+accomplished. Ensure the format 'Response: int' and 'Reasoning: str'. Refer to
+below for example format:
+
+User Prompt: Turn the person in the first reference image into a cartoon character
+Image Ref (via description only): <girl with blonde hair, blue eyes, blue shirt>
+Output: <cartoon character, girl with blonde hair, slightly darker blue eyes, blue shirt>
+Response: 5/5
+Reasoning: The prompt asked for a style change to cartoon, which was fully executed.
+The subject from the reference is present and identifiable. No additional instructions
+were given that were missed.
+
+User Prompt: Put the person in image 1 on the sofa in the room shown in image 3,
+and the person in image 2 standing beside the sofa.
+Image Ref (via description only, in that order): <a cartoon character of a middle-aged
+male doctor in a white lab coat>, <a cartoon character of a girl with long curly black
+hair>, <a realistic image of a lab with a green sofa against the right wall>
+Output: <cartoon male doctor sitting on the green sofa, empty space beside the sofa,
+lab backdrop present>
+Response: 2/5
+Reasoning: The prompt specified two subjects — the doctor placed on the sofa and the
+girl standing beside it. The doctor's placement is correct, but the girl from image 2
+is entirely absent from the output. Half of the core instruction was not executed.
+```
+
+</details>
+
+**Demo**
+
+**Inputs**
+
+<img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a" width="220" />
+<img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-6f9167f5-0d6e-4b2a-b02f-cebb165435a2" width="220" />
+
+**Output image**
+
+<img src="output/img-edit/ComfyUI_00002_.png" width="220" />
+
+**Command**
+
+```bash
+python scripts/run_gen_eval.py \
+  --refs $VET_IMG $ROOM_IMG \
+  --gen-output output/img-edit/ComfyUI_00002_.png \
+  --prompt "Put vet in room" \
+  --prompt-adherence
+```
+
+**Output**
+
+Score: **5/5**
+
+Reasoning: The output image correctly places the doctor from image 1 into the room shown in image 2. The doctor is standing in the center of the room, positioned on the green rug, which is consistent with the spatial context of the room. The style of the doctor is preserved from image 1, and the room's elements (door, sofa, rug, framed picture) are all present and correctly rendered from image 2. The prompt did not specify any additional actions, placements, or style changes beyond placing the subject in the room, and the output fully accomplishes this.
+
+<details>
+<summary>Full run log (click to expand)</summary>
+
+```text
+(.venv) root@63ae7a98371f:~/jadu_image_video_ai_demo# python scripts/run_gen_eval.py   --refs $VET_IMG $ROOM_IMG   --gen-output output/img-edit/ComfyUI_00002_.png   --prompt "Put vet in room"   --prompt-adherence
+Loading model (this may take a moment)...
+2026-05-12 08:15:05,882 INFO qwen_vl - Loading Qwen3-VL processor: models/hf/Qwen__Qwen3-VL-4B-Instruct
+2026-05-12 08:15:06,563 INFO qwen_vl - Loading Qwen3-VL model: models/hf/Qwen__Qwen3-VL-4B-Instruct (device=cuda:0, dtype=torch.bfloat16)
+/root/jadu_image_video_ai_demo/.venv/lib/python3.11/site-packages/transformers/models/auto/modeling_auto.py:2284: FutureWarning: The class `AutoModelForVision2Seq` is deprecated and will be removed in v5.0. Please use `AutoModelForImageTextToText` instead.
+  warnings.warn(
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████████████████████████████████| 2/2 [00:00<00:00, 24.84it/s]
+2026-05-12 08:15:08,533 INFO qwen_vl - Qwen3-VL Transformers model is ready on cuda:0.
+
+Running prompt adherence evaluation...
+2026-05-12 08:15:11,220 INFO qwen_vl - Built Qwen3 messages with 3 image(s).
+2026-05-12 08:15:15,133 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+2026-05-12 08:15:21,825 INFO qwen_vl - Qwen3-VL inference completed.
+Prompt adherence score: 5/5
+Reasoning: The user prompt was "Put vet in room." The output image (image 3) correctly places the doctor from image 1 into the room shown in image 2. The doctor is standing in the center of the room, positioned on the green rug, which is consistent with the spatial context of the room. The style of the doctor is preserved from image 1, and the room's elements (door, sofa, rug, framed picture) are all present and correctly rendered from image 2. The prompt did not specify any additional actions, placements, or style changes beyond placing the subject in the room, and the output fully accomplishes this. The doctor is the only subject present, which is consistent with the prompt's minimal instruction.
+
+--- Result ---
+{
+  "prompt_adherence": {
+    "score": 5,
+    "reasoning": "The user prompt was \"Put vet in room.\" The output image (image 3) correctly places the doctor from image 1 into the room shown in image 2. The doctor is standing in the center of the room, positioned on the green rug, which is consistent with the spatial context of the room. The style of the doctor is preserved from image 1, and the room's elements (door, sofa, rug, framed picture) are all present and correctly rendered from image 2. The prompt did not specify any additional actions, placements, or style changes beyond placing the subject in the room, and the output fully accomplishes this. The doctor is the only subject present, which is consistent with the prompt's minimal instruction."
+  }
+}
 ```
 
 </details>
