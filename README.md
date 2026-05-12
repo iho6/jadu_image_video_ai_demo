@@ -711,7 +711,7 @@ you want the full-body standing pose from the reference to be preserved?
 
 </details>
 
-**Demo**
+#### Demo
 
 **Inputs**
 
@@ -991,7 +991,7 @@ Generating questions...
 
 ---
 
-**Demo 2**
+#### Demo 2
 
 **Inputs**
 
@@ -1320,7 +1320,7 @@ between backdrop and character is kept the same.
 
 </details>
 
-**Demo**
+#### Demo
 
 **Inputs**
 
@@ -1398,7 +1398,7 @@ Reasoning: The output image (image 2) is a close-up of the dog character with an
 
 ---
 
-**Demo 2 — consistency not required**
+#### Demo 2 — consistency not required
 
 **Inputs**
 
@@ -1524,7 +1524,7 @@ is entirely absent from the output. Half of the core instruction was not execute
 
 </details>
 
-**Demo**
+#### Demo
 
 **Inputs**
 
@@ -1678,11 +1678,11 @@ Assistant: python scripts/run_gen_eval.py --refs https://s3.../ref.png --gen-out
 
 </details>
 
-**Test Plan**
+#### Test Plan
 
 To be implemented: a VLM evaluator that scores conversations on helpfulness, percentage of tools utilised, and number of times the user had to clarify their request. Prompts for this evaluator haven't been written yet, but the transcript export function has been added to the chat — transcripts are automatically saved on exit and can be passed to the evaluator when ready.
 
-**Demo**
+#### Demo
 
 **Input**
 
