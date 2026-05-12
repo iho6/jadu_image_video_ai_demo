@@ -26,6 +26,7 @@ from __future__ import annotations
 import atexit
 import argparse
 import logging
+import os
 import re
 import sys
 from datetime import datetime
@@ -65,7 +66,7 @@ def parse_image_prefix(raw: str) -> tuple[list[str], str]:
     m = _IMAGE_RE.match(raw)
     if not m:
         return [], raw.strip()
-    paths = [p.strip() for p in m.group(1).split(",") if p.strip()]
+    paths = [os.path.expandvars(p.strip()) for p in m.group(1).split(",") if p.strip()]
     text = raw[m.end():].strip()
     return paths, text
 
