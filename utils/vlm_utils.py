@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import requests
 from pathlib import Path
 from typing import Any
 
@@ -13,8 +14,21 @@ _VIDEO_EXTS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"}
 
 
 def detect_output_type(path: str) -> str:
-    """Return 'video' or 'image' based on the output path extension."""
-    return "video" if Path(path).suffix.lower() in _VIDEO_EXTS else "image"
+    """Return 'video' or 'image' based on extension, with HTTP HEAD fallback for extensionless URLs."""
+    suffix = Path(path).suffix.lower()
+    if suffix in _VIDEO_EXTS:
+        return "video"
+    if suffix:
+        return "image"
+    if path.startswith("http://") or path.startswith("https://"):
+        try:
+            r = requests.head(path, allow_redirects=True, timeout=5)
+            ct = r.headers.get("Content-Type", "")
+            if ct.startswith("video/"):
+                return "video"
+        except Exception:
+            pass
+    return "image"
 
 
 def extract_assistant_text(raw: object) -> str:

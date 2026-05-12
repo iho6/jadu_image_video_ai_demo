@@ -390,11 +390,11 @@ def build_prompt_adherence_eval_prompt(
     media_label = "video" if output_type == "video" else "image"
     ref_start, ref_end = ref_idx_range
     return (
-        f"You are evaluating an {task_desc} with input references "
+        f"You are evaluating an {task_desc} out of 5 with input references "
         f"(image {ref_start} to image {ref_end}) and the following user prompt: {user_prompt}. "
         f"({media_label} {output_idx}), the {output_idx}th file, is the output result from the generation task. "
         f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
-        "Evaluate how well the output fulfills what the user prompt asked for. "
+        "Evaluate how well the output fulfills what the user prompt asked for out of 5. "
         "Consider every specific instruction, subject, action, placement, style change, "
         "or constraint mentioned in the prompt, and assess whether the output delivers "
         "on each one.\n\n"
@@ -405,7 +405,7 @@ def build_prompt_adherence_eval_prompt(
         "output only addresses a small part of what was asked; 1/5 means the output "
         "barely addresses the prompt; 0/5 means the output completely ignores the prompt.\n\n"
         "Also return a 'Reasoning' that identifies specifically what was and wasn't "
-        "accomplished. Refer to below for example format:\n\n"
+        "accomplished. Ensure the format 'Response: int' and 'Reasoning: str' Refer to below for example format:\n\n"
         "User Prompt: Turn the person in the first reference image into a cartoon character\n"
         "Image Ref (via description only): <girl with blonde hair, blue eyes, blue shirt>\n"
         "Output: <cartoon character, girl with blonde hair, slightly darker blue eyes, blue shirt>\n"

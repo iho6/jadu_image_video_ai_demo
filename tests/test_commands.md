@@ -171,7 +171,7 @@ python scripts/run_gen_eval.py \
   --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-7fbd52ae-62cd-49f9-bf75-65588a7a8120 \
   --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-39131511-fb32-4704-8e9a-30968dca4539 \
   --prompt "A stylish woman with a sleek bob haircut and dark sunglasses sits in the driver's seat of a car at night. She wears a sharp black suit and a ruby choker. Minimal motion, smooth and cinematic." \
-  --all
+  --non-prompt-artifact
 
 # All evals: 50d1874a — Mohini pummels Vet comic action
 python scripts/run_gen_eval.py \

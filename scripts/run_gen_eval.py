@@ -191,7 +191,10 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(1) from exc
 
         items = unprompted["unprompted_items"]
-        print(f"Found {len(items)} unprompted element(s). Evaluating...")
+        print(f"Found {len(items)} unprompted element(s):")
+        for i, item in enumerate(items, 1):
+            print(f"  {i}. {item}")
+        print("Evaluating...")
         try:
             npa_result = evaluator_npa.unprompted_artifact_list_eval(
                 runner=runner,
@@ -224,7 +227,10 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(1) from exc
 
         items = unprompted["unprompted_items"]
-        print(f"Found {len(items)} unprompted element(s). Generating questions...")
+        print(f"Found {len(items)} unprompted element(s):")
+        for i, item in enumerate(items, 1):
+            print(f"  {i}. {item}")
+        print("Generating questions...")
         try:
             questions = evaluator_npa.format_unprompted_as_questions(
                 runner=runner,
