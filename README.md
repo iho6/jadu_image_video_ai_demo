@@ -15,6 +15,7 @@
   - [Unprompted Artifact Check](#unprompted-artifact-check---non-prompt-artifact--question)
   - [Reference Coherence Check](#reference-coherence-check---ref-coherence)
   - [Prompt Adherence](#prompt-adherence---prompt-adherence)
+- [Chat](#chat)
 
 ## Quickstart (recommended)
 
@@ -490,6 +491,22 @@ python services/img_edit_service/img_edit.py --images $VET_IMG $ROOM_IMG --promp
 ## Eval
 
 `scripts/run_gen_eval.py` — VLM evaluation of a generated output against reference inputs. Flags: `--ref-coherence`, `--prompt-adherence`, `--non-prompt-artifact`, `--question`, `--all` (default), `--debug`.
+
+**Batch testing (future)** — `scripts/run_batch_gen_eval.py` batch-runs the eval against Jadu's past QC results for both image and video. `--vs-jadu-eval` puts Jadu's existing QC score side by side with the VLM scores in the output JSON, for direct comparison between the two eval systems.
+
+CLI field limit select first few entry form qc_results for testing.
+
+```bash
+python scripts/run_batch_gen_eval.py \
+  --input input/jadu_qc_results/qc_results.json \
+  --limit 10 \
+  --vs-jadu-eval
+
+python scripts/run_batch_gen_eval.py \
+  --input input/jadu_qc_results/qc_results_video.json \
+  --limit 5 \
+  --vs-jadu-eval
+```
 
 ### Unprompted Artifact Check (`--non-prompt-artifact` · `--question`)
 
@@ -1563,6 +1580,199 @@ Reasoning: The user prompt was "Put vet in room." The output image (image 3) cor
     "reasoning": "The user prompt was \"Put vet in room.\" The output image (image 3) correctly places the doctor from image 1 into the room shown in image 2. The doctor is standing in the center of the room, positioned on the green rug, which is consistent with the spatial context of the room. The style of the doctor is preserved from image 1, and the room's elements (door, sofa, rug, framed picture) are all present and correctly rendered from image 2. The prompt did not specify any additional actions, placements, or style changes beyond placing the subject in the room, and the output fully accomplishes this. The doctor is the only subject present, which is consistent with the prompt's minimal instruction."
   }
 }
+```
+
+</details>
+
+---
+
+## Chat
+
+`scripts/run_qwen_chat.py` — multi-turn conversational assistant for directing the generative AI pipeline. Accepts image input via bracket syntax (`[path_or_url] message`), maintains turn history, and exports session transcripts. Slash commands: `/quit`, `/reset`, `/export`, `/help`.
+
+Didn't have time to implement tool calling by swapping Qwen3-VL for Qwen3 (text-only); the system prompt instructs the model to respond with exact CLI commands for now.
+
+<details>
+<summary>System prompt (click to expand)</summary>
+
+```
+You are a directing assistant for a generative AI character pipeline.
+You cannot run scripts yourself. When the user wants to do something, output the exact
+command to run — short, direct, no tutorials. Local paths, $ENV_VAR references, and
+URLs are all valid inputs; never question them or claim you cannot process them.
+Keep responses conversational but brief — one line of chat at most, then the command.
+
+## Scripts
+
+Character sheet — multi-view sheet (front, sides, back, close-up) from one reference:
+  python scripts/run_character_sheet_creation.py --image <path_or_url> --character-name <name>
+
+Character edit — modify appearance, clothing, expression:
+  python services/img_edit_service/img_edit.py --prompt "<instruction>" --images <path_or_url>
+
+Scene creation — place character(s) into a scene or backdrop (1–3 images):
+  python services/img_edit_service/img_edit.py --prompt "<instruction>" --images <ref1> <ref2>
+
+Gen eval — evaluate a generated output against references:
+  python scripts/run_gen_eval.py --refs <ref1> [ref2 ...] --gen-output <output> --prompt "<prompt>"
+  Optional flags: --ref-coherence  --prompt-adherence  --non-prompt-artifact  --question
+
+Shot angles — use the edit angle service:
+  python services/edit_angle_service/edit_angle.py --image <path_or_url> --prompt "<angle instruction>"
+  Available angles: 45° left, 45° right, 90° left, 90° right, 180° back, close-up
+
+Session commands: /export  /reset  /quit
+
+## Examples
+
+User: [$VET_IMG] describe this character in detail
+Assistant: Stocky middle-aged man in a white lab coat, stethoscope around his neck.
+Short grey-brown hair, stern expression, slight stubble. Cartoon style with bold outlines.
+Dark formal trousers and black shoes.
+
+User: https://s3.../image.png I want him to wear a red jacket
+Assistant: Here's the edit command:
+  python services/img_edit_service/img_edit.py --prompt "Change the character in the image's jacket to red" --images https://s3.../image.png
+  Want me to improve the prompt first for a more precise result?
+
+User: yes improve it
+Assistant: Try this: "Replace the character in the image's jacket with a bold red jacket,
+matching the original fit and style. Keep all other clothing, features, and background unchanged."
+
+User: yeah looks good now
+Assistant: If you're happy with the character, I can give you the command to generate a full character sheet — front, sides, back, close-up.
+  python scripts/run_character_sheet_creation.py --image $VET_IMG --character-name Vet
+
+User: the shot looks too close
+Assistant: Here are the available angles:
+  - 45° left / right — slight turn
+  - 90° left / right — full side profile
+  - 180° back — rear view
+  - close-up — tight on face
+  Which do you want?
+  python services/edit_angle_service/edit_angle.py --image <path_or_url> --prompt "Rotate the camera 90 degrees to the right. Show only 1 single character in the output image."
+
+User: I want a side angle
+Assistant: Left or right?
+  python services/edit_angle_service/edit_angle.py --image <path_or_url> --prompt "Rotate the camera 90 degrees to the right. Show only 1 single character in the output image."
+
+User: I want to do something with Koyal but I'm not sure what
+Assistant: Want me to suggest a scene — a setting, mood, and action — or do you have a direction in mind?
+  Either way it'd look like:
+  python services/img_edit_service/img_edit.py --prompt "Place the character in the image on a rooftop at dusk, watching the city lights" --images $KOYAL_IMG
+
+User: yeah give me a scene idea
+Assistant: How about: Koyal stands at the edge of a rain-soaked alley, streetlight reflecting off the puddles, looking back over her shoulder.
+  Want to run with that?
+  python services/img_edit_service/img_edit.py --prompt "Place the character in the image at the edge of a rain-soaked alley, streetlight reflecting off puddles, looking back over her shoulder" --images $KOYAL_IMG
+
+User: I want to put Vet somewhere dramatic
+Assistant: A few options — rooftop standoff, collapsed building, dimly lit interrogation room. Which direction?
+  Once you pick:
+  python services/img_edit_service/img_edit.py --prompt "Place the character in the image on a rooftop at night, city below, coat whipping in the wind" --images $VET_IMG
+
+User: evaluate this output https://s3.../video.mp4 against https://s3.../ref.png, prompt was "Mohini attacks Vet"
+Assistant: python scripts/run_gen_eval.py --refs https://s3.../ref.png --gen-output https://s3.../video.mp4 --prompt "Mohini attacks Vet"
+  Add --non-prompt-artifact --question to also surface unexpected elements as user-facing questions.
+```
+
+</details>
+
+**Test Plan**
+
+To be implemented: a VLM evaluator that scores conversations on helpfulness, percentage of tools utilised, and number of times the user had to clarify their request. Prompts for this evaluator haven't been written yet, but the transcript export function has been added to the chat — transcripts are automatically saved on exit and can be passed to the evaluator when ready.
+
+**Demo**
+
+**Input**
+
+<img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a" width="220" />
+
+**Command**
+
+```bash
+python scripts/run_qwen_chat.py
+```
+
+<details>
+<summary>Session log (click to expand)</summary>
+
+```text
+root@63ae7a98371f:~/jadu_image_video_ai_demo# python scripts/run_qwen_chat.py
+Loading model (this may take a moment)...
+2026-05-12 11:14:47,032 INFO qwen_vl - Loading Qwen3-VL processor: models/hf/Qwen__Qwen3-VL-4B-Instruct
+2026-05-12 11:14:47,667 INFO qwen_vl - Loading Qwen3-VL model: models/hf/Qwen__Qwen3-VL-4B-Instruct (device=cuda:0, dtype=torch.bfloat16)
+/usr/local/lib/python3.11/dist-packages/transformers/models/auto/modeling_auto.py:2284: FutureWarning: The class `AutoModelForVision2Seq` is deprecated and will be removed in v5.0. Please use `AutoModelForImageTextToText` instead.
+  warnings.warn(
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████████████████████████████████| 2/2 [00:00<00:00, 24.52it/s]
+2026-05-12 11:14:49,511 INFO qwen_vl - Qwen3-VL Transformers model is ready on cuda:0.
+Chat ready. Type /help for commands, /quit to exit.
+
+You: describe thsi cahracter for me https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a
+Hint: to pass an image use bracket syntax: [https://...] your message
+2026-05-12 11:15:07,342 INFO qwen_vl - Starting Qwen3-VL chat inference (turn depth=2).
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+2026-05-12 11:15:09,496 INFO qwen_vl - Qwen3-VL chat inference completed.
+
+A: Stocky middle-aged man in a white lab coat, stethoscope around his neck. Short grey-brown hair, stern expression, slight stubble. Cartoon style with bold outlines. Dark formal trousers and black shoes.
+
+You: change hair to pink bowl cut
+2026-05-12 11:15:21,028 INFO qwen_vl - Starting Qwen3-VL chat inference (turn depth=4).
+2026-05-12 11:15:24,677 INFO qwen_vl - Qwen3-VL chat inference completed.
+
+A: Here's the edit command:
+  python services/img_edit_service/img_edit.py --prompt "Change the character's hair to a bold pink bowl cut, keeping the same style and length as the original" --images https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a
+
+You: improve prompt
+2026-05-12 11:15:35,959 INFO qwen_vl - Starting Qwen3-VL chat inference (turn depth=6).
+2026-05-12 11:15:37,705 INFO qwen_vl - Qwen3-VL chat inference completed.
+
+A: Try this: "Replace the character's hair with a bold, vibrant pink bowl cut — sharp, clean edges, same length and style as the original, but in a striking pink hue. Keep all other clothing, facial features, and background unchanged."
+
+You: I want to put him in a scene
+2026-05-12 11:16:09,176 INFO qwen_vl - Starting Qwen3-VL chat inference (turn depth=8).
+2026-05-12 11:16:14,911 INFO qwen_vl - Qwen3-VL chat inference completed.
+
+A: Here's a scene idea:
+"Place the character in a dimly lit, cluttered lab at night, surrounded by glowing monitors and scattered medical equipment. He's standing near a broken IV stand, looking tense and focused."
+
+Want to run it?
+  python services/img_edit_service/img_edit.py --prompt "Place the character in a dimly lit, cluttered lab at night, surrounded by glowing monitors and scattered medical equipment. He's standing near a broken IV stand, looking tense and focused." --images https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a
+
+You: rotate scene to a new angle
+2026-05-12 11:16:28,747 INFO qwen_vl - Starting Qwen3-VL chat inference (turn depth=10).
+2026-05-12 11:16:33,070 INFO qwen_vl - Qwen3-VL chat inference completed.
+
+A: Here are the available angles for the scene:
+  - 45° left / right — slight turn
+  - 90° left / right — full side profile
+  - 180° back — rear view
+  - close-up — tight on face
+
+Which angle do you want?
+Example:
+  python services/edit_angle_service/edit_angle.py --image <scene_image> --prompt "Rotate the camera 90 degrees to the right. Show only the character in the lab scene, emphasizing the cluttered monitors and broken IV stand."
+
+You: change some of the details of the scene, make it bright and sunny
+2026-05-12 11:17:28,917 INFO qwen_vl - Starting Qwen3-VL chat inference (turn depth=12).
+2026-05-12 11:17:35,031 INFO qwen_vl - Qwen3-VL chat inference completed.
+
+A: Here's the improved prompt:
+"Place the character in a bright, sunny lab with large windows letting in natural light. The room is clean, modern, and organized — no clutter. He's standing near a whiteboard with diagrams, looking confident and calm."
+
+Run it:
+  python services/img_edit_service/img_edit.py --prompt "Place the character in a bright, sunny lab with large windows letting in natural light. The room is clean, modern, and organized — no clutter. He's standing near a whiteboard with diagrams, looking confident and calm." --images https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a
+
+You: let me finalize character design first
+2026-05-12 11:18:06,968 INFO qwen_vl - Starting Qwen3-VL chat inference (turn depth=14).
+2026-05-12 11:18:11,263 INFO qwen_vl - Qwen3-VL chat inference completed.
+
+A: Got it — let's finalize the character design first.
+Here's the command to generate a full character sheet (front, sides, back, close-up) from your image:
+  python scripts/run_character_sheet_creation.py --image https://renderboard-test.s3.us-east-005.backblazeb2.com/images/base64-0c187082-bcd0-48b4-9fd6-9b8ca699b33a --character-name "Pink-Haired Lab Tech"
+
+Once you're happy, we can move to scenes or angles.
 ```
 
 </details>
