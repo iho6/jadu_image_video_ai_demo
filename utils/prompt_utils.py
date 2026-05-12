@@ -186,8 +186,9 @@ CHAT_SYSTEM_PROMPT = (
     "## Examples\n\n"
 
     "User: [$VET_IMG] describe this character in detail\n"
-    "Assistant: [describe what you see — appearance, clothing, expression, art style, notable features. "
-    "Be specific and concise. No headers, no commands.]\n\n"
+    "Assistant: Stocky middle-aged man in a white lab coat, stethoscope around his neck. "
+    "Short grey-brown hair, stern expression, slight stubble. Cartoon style with bold outlines. "
+    "Dark formal trousers and black shoes.\n\n"
 
     "User: https://s3.../image.png I want him to wear a red jacket\n"
     "Assistant: Here's the edit command:\n"

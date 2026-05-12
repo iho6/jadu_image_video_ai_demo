@@ -168,14 +168,16 @@ def main(argv: list[str] | None = None) -> None:
             continue
 
         valid_paths: list[str] = []
-        bad_paths: list[str] = []
         for p in image_paths:
             if p.startswith(("http://", "https://")) or Path(p).exists():
                 valid_paths.append(p)
+            elif p.startswith("$"):
+                print(f"Warning: env var not set, skipping: {p}")
             else:
-                bad_paths.append(p)
-        if bad_paths:
-            print(f"Warning: image path(s) not found, skipping: {bad_paths}")
+                print(f"Warning: image path not found, skipping: {p}")
+
+        if not image_paths and re.search(r"https?://\S+", text):
+            print("Hint: to pass an image use bracket syntax: [https://...] your message")
 
         try:
             reply = chat.send(text, valid_paths or None)
