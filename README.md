@@ -1154,17 +1154,18 @@ Ensure the format ‘Response: X/5’ and ‘Reasoning: str’.
 **Inputs**
 
 <img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9" width="220" />
+
+**Inputs**
 <img src="https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec" width="220" />
 
-[Generated video](https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b)
+
 
 **Command**
 
 ```bash
 python scripts/run_gen_eval.py \
   --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9 \
-         https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec \
-  --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b \
+  --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec \
   --prompt "Cuddles and Koyal are relaxed. Both gaze out over the balcony, sitting closely but comfortably. Camera Angle: WIDE_SHOT" \
   --ref-coherence
 ```
@@ -1183,7 +1184,7 @@ Reasoning: The output image is a close-up of the dog character with an exaggerat
 <summary>Full run log (click to expand)</summary>
 
 ```text
-(.venv) root@63ae7a98371f:~/jadu_image_video_ai_demo# python scripts/run_gen_eval.py   --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9         https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec   --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b   --prompt "Cuddles and Koyal are relaxed. Both gaze out over the balcony, sitting closely but comfortably. Camera Angle: WIDE_SHOT"   --ref-coherence
+(.venv) root@63ae7a98371f:~/jadu_image_video_ai_demo# python scripts/run_gen_eval.py   --refs https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-21484c98-ec53-4aae-b714-3d2fdaec9dd9            --gen-output https://renderboard-test.s3.us-east-005.backblazeb2.com/images/asset-79d772f5-e2d7-4366-ba3a-0b9de9fb6aec   --prompt "Cuddles and Koyal are relaxed. Both gaze out over the balcony, sitting closely but comfortably. Camera Angle: WIDE_SHOT"   --ref-coherence
 Loading model (this may take a moment)...
 2026-05-12 10:04:06,474 INFO qwen_vl - Loading Qwen3-VL processor: models/hf/Qwen__Qwen3-VL-4B-Instruct
 2026-05-12 10:04:07,134 INFO qwen_vl - Loading Qwen3-VL model: models/hf/Qwen__Qwen3-VL-4B-Instruct (device=cuda:0, dtype=torch.bfloat16)
@@ -1194,10 +1195,10 @@ Loading checkpoint shards: 100%|████████████████
 2026-05-12 10:04:09,217 INFO qwen_vl - Qwen3-VL Transformers model is ready on cuda:0.
 
 Checking whether reference consistency evaluation is required...
-2026-05-12 10:04:17,077 INFO qwen_vl - Built Qwen3 messages with 2 image(s) and 1 video.
-qwen-vl-utils using torchvision to read video.
-2026-05-12 10:04:33,613 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=13.422s
-Qwen3VL requires frame timestamps to construct prompts, but the `fps` of the input video could not be inferred. Probably `video_metadata` was missing from inputs and you passed pre-sampled frames. Defaulting to `fps=24`. Please provide `video_metadata` for more accurate results.
+2026-05-12 10:04:17,077 INFO qwen_vl - Built Qwen3 messages with 2 image(s).
+
+2026-05-12 10:04:33,613 INFO qwen_vl_utils.
+
 2026-05-12 10:04:36,416 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
 The following generation flags are not valid and may be ignored: [‘temperature’, ‘top_p’, ‘top_k’]. Set `TRANSFORMERS_VERBOSITY=info` for more details.
 2026-05-12 10:04:42,720 INFO qwen_vl - Qwen3-VL inference completed.
@@ -1205,7 +1206,7 @@ Consistency required: True
 Reasoning: The user prompt specifies that Cuddles and Koyal are relaxed and sitting closely but comfortably on the balcony, with the camera in a WIDE_SHOT. The references show the characters in this exact setup — Cuddles (the dog) and Koyal (the crow) seated on the balcony railing, facing the cityscape under a full moon. The prompt does not request any stylistic change or reinterpretation; it demands the scene to be preserved as is, with the characters’ positions, expressions (as seen in the close-up), and the environment (city skyline, moon, stars) to remain consistent. Therefore, the layout, appearance, and relative positioning of all elements in the references must be maintained in the output video.
 
 Running reference consistency scoring...
-2026-05-12 10:04:45,550 INFO qwen_vl - Built Qwen3 messages with 2 image(s) and 1 video.
+2026-05-12 10:04:45,550 INFO qwen_vl - Built Qwen3 messages with 2 image(s).
 2026-05-12 10:04:53,611 INFO qwen_vl_utils.vision_process - torchvision:  video_path=’https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-f47fb629-b791-4b82-b753-54e871d4ec2b’, total_frames=121, video_fps=24.0, time=5.461s
 2026-05-12 10:04:56,392 INFO qwen_vl - Starting Qwen3-VL inference on cuda:0.
 2026-05-12 10:05:02,716 INFO qwen_vl - Qwen3-VL inference completed.

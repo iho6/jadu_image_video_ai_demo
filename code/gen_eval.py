@@ -50,7 +50,7 @@ class RefConsistencyEval:
         prompt_text = build_ref_comf_req_check_prompt(
             user_prompt=user_prompt,
             ref_idx_range=(1, n),
-            output_idx=n + 1,
+            output_idx=1 if output_type == "video" else n + 1,
             output_type=output_type,
         )
         if output_type == "video":
@@ -77,7 +77,7 @@ class RefConsistencyEval:
         prompt_text = build_ref_consistency_eval_prompt(
             user_prompt=user_prompt,
             ref_idx_range=(1, n),
-            output_idx=n + 1,
+            output_idx=1 if output_type == "video" else n + 1,
             output_type=output_type,
             prior_analysis=prior_analysis,
         )
@@ -110,7 +110,7 @@ class PromptAdherenceEval:
         prompt_text = build_prompt_adherence_eval_prompt(
             user_prompt=user_prompt,
             ref_idx_range=(1, n),
-            output_idx=n + 1,
+            output_idx=1 if output_type == "video" else n + 1,
             output_type=output_type,
         )
         if output_type == "video":
@@ -149,7 +149,7 @@ class UnpromptedArtifactCheckEval:
         prompt_text = build_list_unprompted_prompt(
             user_prompt=user_prompt,
             ref_idx_range=(1, n),
-            output_idx=n + 1,
+            output_idx=1 if output_type == "video" else n + 1,
             output_type=output_type,
             output_description=description,
         )
@@ -193,7 +193,7 @@ class UnpromptedArtifactCheckEval:
             prompt_text = build_unprompted_artifact_eval_prompt(
                 user_prompt=user_prompt,
                 ref_idx_range=(1, n),
-                output_idx=n + 1,
+                output_idx=1 if output_type == "video" else n + 1,
                 output_type=output_type,
                 item=item,
             )
@@ -226,7 +226,7 @@ class UnpromptedArtifactCheckEval:
             prompt_text = build_format_unprompted_question_prompt(
                 user_prompt=user_prompt,
                 ref_idx_range=(1, n),
-                output_idx=n + 1,
+                output_idx=1 if output_type == "video" else n + 1,
                 output_type=output_type,
                 item=item,
             )

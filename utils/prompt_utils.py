@@ -276,7 +276,7 @@ def build_ref_comf_req_check_prompt(
     return (
         f"You are evaluating an {task_desc} with input references "
         f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt} "
-        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
+        f"and ({media_label} {output_idx}), the generated {media_label}, being the output result. "
         f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
         f"Think about the task the user is trying to accomplish via the prompt and references. "
         f"In this {task_desc}, is this a task where people/scenes/items in the reference should "
@@ -342,7 +342,7 @@ def build_ref_consistency_eval_prompt(
     return (
         f"You are evaluating an {task_desc} with input image {ref_start} to image {ref_end} being the "
         f"input references used for the generation task. This is the user's prompt: {user_prompt}. "
-        f"({media_label} {output_idx}), the {output_idx}th file, is the output result from the generation task. Again, "
+        f"({media_label} {output_idx}), the generated {media_label}, is the output result from the generation task. Again, "
         f"{media_label} {output_idx} is the outputted result from the previous generation task "
         f"that you are evaluating against the reference(s) and the prompt.\n\n"
         f"In this image-editing/ref-to-video task, items in the reference should remain "
@@ -407,7 +407,7 @@ def build_prompt_adherence_eval_prompt(
     return (
         f"You are evaluating an {task_desc} out of 5 with input references "
         f"(image {ref_start} to image {ref_end}) and the following user prompt: {user_prompt}. "
-        f"({media_label} {output_idx}), the {output_idx}th file, is the output result from the generation task. "
+        f"({media_label} {output_idx}), the generated {media_label}, is the output result from the generation task. "
         f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
         "Evaluate how well the output fulfills what the user prompt asked for out of 5. "
         "Consider every specific instruction, subject, action, placement, style change, "
@@ -461,7 +461,7 @@ def build_list_unprompted_prompt(
     return (
         f"You are evaluating an {task_desc} with input references "
         f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt}, "
-        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
+        f"and ({media_label} {output_idx}), the generated {media_label}, being the output result. "
         f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
         "Look closely at all aspects of the output using the following description "
         "of the output:\n"
@@ -527,7 +527,7 @@ def build_unprompted_artifact_eval_prompt(
     return (
         f"You are evaluating an {task_desc} with input references "
         f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt}, "
-        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
+        f"and ({media_label} {output_idx}), the generated {media_label}, being the output result. "
         f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
         "The following element was observed in the output but was not explicitly mentioned in "
         f"the user prompt:\n{item}\n\n"
@@ -591,7 +591,7 @@ def build_format_unprompted_question_prompt(
     return (
         f"You are evaluating an {task_desc} with input references "
         f"(image {ref_start} to image {ref_end}), the following user prompt: {user_prompt}, "
-        f"and ({media_label} {output_idx}), the {output_idx}th file, being the output result. "
+        f"and ({media_label} {output_idx}), the generated {media_label}, being the output result. "
         f"Again, {media_label} {output_idx} is the output being evaluated.\n\n"
         "The following element appeared in the output but was not explicitly mentioned in the "
         f"user prompt:\n{item}\n\n"
