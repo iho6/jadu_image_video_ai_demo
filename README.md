@@ -400,7 +400,7 @@ The following generation flags are not valid and may be ignored: ['temperature',
 **Inputs**
 
 
-<img src="input/room.png" width="220" /> https://github.com/user-attachments/assets/ad353505-68cc-4def-9068-ad7b6283bb83
+<img src="input/room.png" width="220" /> https://renderboard-test.s3.us-east-005.backblazeb2.com/videos/asset-ee0e77cc-d735-4d35-bcbe-ef89eaa23789
 
 
 
